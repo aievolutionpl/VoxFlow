@@ -1,0 +1,70 @@
+name: VoxFlow CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Lint with flake8
+        run: |
+          # Stop on syntax errors or undefined names
+          flake8 voxflow/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warnings (non-blocking)
+          flake8 voxflow/ --count --exit-zero --max-complexity=15 --max-line-length=120 --statistics
+
+      - name: Test imports
+        run: python -m voxflow.main --test
+
+  build-exe:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE
+        run: |
+          pyinstaller --name "VoxFlow" --icon "assets\voxflow.ico" --onedir --windowed --noconfirm --clean --add-data "voxflow;voxflow" --add-data "assets;assets" --hidden-import "faster_whisper" --hidden-import "ctranslate2" --hidden-import "huggingface_hub" --hidden-import "tokenizers" --hidden-import "sounddevice" --hidden-import "customtkinter" --hidden-import "pystray" --hidden-import "keyboard" --hidden-import "pyperclip" --hidden-import "_sounddevice_data" --hidden-import "scipy" --collect-all "customtkinter" --collect-all "faster_whisper" --collect-all "ctranslate2" voxflow/main.py
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoxFlow-Windows
+          path: dist/VoxFlow/
+          retention-days: 30

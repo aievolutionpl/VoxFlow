@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.spec
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# VoxFlow specific
+installer_output/
+*.exe
+*.msi
+
+# Whisper models (downloaded at runtime)
+models/
+
+# Config (user-specific)
+# config.json is generated per-user in %APPDATA%/VoxFlow/
+
+# Logs
+*.log
+
+# Distribution packages
+*.whl
+*.tar.gz
