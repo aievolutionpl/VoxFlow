@@ -41,10 +41,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/AI-Evolution-Polska/VoxFlow"
-Repository = "https://github.com/AI-Evolution-Polska/VoxFlow"
-Issues = "https://github.com/AI-Evolution-Polska/VoxFlow/issues"
-Changelog = "https://github.com/AI-Evolution-Polska/VoxFlow/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/aievolutionpl/VoxFlow"
+Repository = "https://github.com/aievolutionpl/VoxFlow"
+Issues = "https://github.com/aievolutionpl/VoxFlow/issues"
+Changelog = "https://github.com/aievolutionpl/VoxFlow/blob/main/CHANGELOG.md"
 
 [project.scripts]
 voxflow = "voxflow.main:main"
