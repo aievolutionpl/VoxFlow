@@ -11,7 +11,7 @@
 Jeśli odkryjesz lukę bezpieczeństwa w VoxFlow:
 
 1. **NIE** twórz publicznego Issue
-2. Wyślij opis na: **security@aievolutionpolska.pl** (lub otwórz prywatny Security Advisory na GitHubie)
+2. Wyślij opis na: **kontakt@aievolutionpolska.pl** (lub otwórz prywatny Security Advisory na GitHubie)
 3. W zgłoszeniu podaj:
    - Opis podatności
    - Kroki do reprodukcji
@@ -50,4 +50,4 @@ VoxFlow jest **w 100% lokalne**:
 
 ---
 
-*Zbudowane przez [AI Evolution Polska](https://github.com/AI-Evolution-Polska)*
+*Zbudowane przez [AI Evolution Polska](https://github.com/aievolutionpl)*
