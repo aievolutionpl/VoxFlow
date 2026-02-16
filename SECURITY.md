@@ -50,4 +50,4 @@ VoxFlow jest **w 100% lokalne**:
 
 ---
 
-*Zbudowane przez [AI Evolution Polska](https://github.com/AI-Evolution-Polska)*
+*Zbudowane przez [AI Evolution Polska](https://github.com/aievolutionpl)*

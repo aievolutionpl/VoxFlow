@@ -74,7 +74,7 @@ Skrypt automatycznie:
 
 ```bash
 # Sklonuj repozytorium
-git clone https://github.com/AI-Evolution-Polska/VoxFlow.git
+git clone https://github.com/aievolutionpl/VoxFlow.git
 cd VoxFlow
 
 # Stwórz środowisko wirtualne
@@ -239,6 +239,6 @@ Ten projekt jest udostępniony na licencji [MIT](LICENSE).
 ---
 
 <p align="center">
-  <strong>Zbudowane z ❤️ przez <a href="https://github.com/AI-Evolution-Polska">AI Evolution Polska</a></strong><br>
+  <strong>Zbudowane z ❤️ przez <a href="https://github.com/aievolutionpl">AI Evolution Polska</a></strong><br>
   <em>Open-source tools for the Polish AI community</em>
 </p>

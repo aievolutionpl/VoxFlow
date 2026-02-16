@@ -5,7 +5,7 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "AI Evolution Polska"
 #define MyAppExeName "VoxFlow.exe"
-#define MyAppURL "https://github.com/AI-Evolution-Polska/VoxFlow"
+#define MyAppURL "https://github.com/aievolutionpl/VoxFlow"
 
 [Setup]
 AppId={{B8E4F2A1-3C7D-4E9F-A5B6-1D2E3F4A5B6C}

@@ -1,7 +1,7 @@
 """VoxFlow Main Application - Beautiful Desktop UI with Hold-to-Record.
 
 Built by AI Evolution Polska
-https://github.com/AI-Evolution-Polska/VoxFlow
+https://github.com/aievolutionpl/VoxFlow
 """
 import threading
 import time

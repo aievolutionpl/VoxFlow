@@ -38,4 +38,4 @@ wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 
 ---
 
-*Zbudowane przez [AI Evolution Polska](https://github.com/AI-Evolution-Polska)*
+*Zbudowane przez [AI Evolution Polska](https://github.com/aievolutionpl)*
