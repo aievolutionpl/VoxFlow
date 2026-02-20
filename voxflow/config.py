@@ -19,11 +19,8 @@ def get_config_dir() -> Path:
 # Valid value ranges for security validation
 _VALID_MODELS = {"tiny", "base", "small", "medium", "large-v3"}
 _VALID_LANGUAGES = {"auto", "pl", "en"}
-_VALID_HOTKEYS = {
-    "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10",
-    "ctrl+space", "ctrl+shift+space", "caps lock", "insert",
-    "scroll lock", "pause",
-}
+# Hotkey validation: allow any non-empty string (hotkey picker can produce
+# arbitrary key names). We only enforce it's a safe non-empty string.
 _VALID_TYPING_METHODS = {"clipboard", "keyboard"}
 _VALID_THEMES = {"dark", "light"}
 
@@ -64,8 +61,10 @@ def _validate_config(data: dict) -> dict:
             validated[key] = default_val
         elif key == "language" and value not in _VALID_LANGUAGES:
             validated[key] = default_val
-        elif key == "hotkey" and str(value).lower() not in _VALID_HOTKEYS:
-            validated[key] = default_val
+        elif key == "hotkey":
+            # Accept any non-empty string — hotkey picker sets arbitrary keys
+            s = str(value).strip().lower()
+            validated[key] = s if s else default_val
         elif key == "typing_method" and value not in _VALID_TYPING_METHODS:
             validated[key] = default_val
         elif key == "theme" and value not in _VALID_THEMES:

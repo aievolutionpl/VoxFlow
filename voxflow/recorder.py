@@ -17,6 +17,7 @@ class AudioRecorder:
         max_duration: float = 300.0,
         device_index: int = -1,
         on_level_change: Optional[Callable[[float], None]] = None,
+        on_device_fallback: Optional[Callable[[int], None]] = None,
     ):
         self.sample_rate = sample_rate
         self.channels = channels
@@ -25,6 +26,7 @@ class AudioRecorder:
         self.max_duration = max_duration
         self.device_index = device_index  # -1 = system default
         self.on_level_change = on_level_change
+        self.on_device_fallback = on_device_fallback
 
         self._recording = False
         self._audio_chunks: list[np.ndarray] = []
@@ -70,6 +72,12 @@ class AudioRecorder:
             if device is not None:
                 print(f"Device {device} failed, falling back to default: {e}")
                 self.device_index = -1
+                # Notify app so it can update UI and config permanently
+                if self.on_device_fallback:
+                    try:
+                        self.on_device_fallback(-1)
+                    except Exception:
+                        pass
                 self._stream = sd.InputStream(
                     samplerate=self.sample_rate,
                     channels=self.channels,

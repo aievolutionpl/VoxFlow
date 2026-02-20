@@ -16,12 +16,25 @@ from voxflow.config import VoxFlowConfig
 from voxflow.recorder import AudioRecorder
 from voxflow.transcriber import VoxTranscriber
 from voxflow.hotkey_manager import HotkeyManager
-from voxflow.tray import TrayManager
 from voxflow.auto_typer import AutoTyper
 from voxflow import sounds
 from voxflow.overlay import RecordingOverlay
-from voxflow.autostart import set_autostart, is_autostart_enabled
 from voxflow import __version__, __author__
+
+# Optional modules — gracefully degrade if unavailable
+try:
+    from voxflow.tray import TrayManager
+    _TRAY_AVAILABLE = True
+except Exception:
+    _TRAY_AVAILABLE = False
+
+try:
+    from voxflow.autostart import set_autostart, is_autostart_enabled
+    _AUTOSTART_AVAILABLE = True
+except Exception:
+    _AUTOSTART_AVAILABLE = False
+    def set_autostart(_enabled: bool) -> None: pass
+    def is_autostart_enabled() -> bool: return False
 
 
 # ─── Color Palette ────────────────────────────────────────────────────────────
@@ -82,6 +95,7 @@ class VoxFlowApp(ctk.CTk):
             max_duration=self.config.max_recording_duration,
             device_index=self.config.audio_device_index,
             on_level_change=self._on_level,
+            on_device_fallback=self._on_device_fallback,
         )
 
         self.transcriber = VoxTranscriber(
@@ -96,11 +110,14 @@ class VoxFlowApp(ctk.CTk):
             on_release=self._on_hotkey_release,
         )
 
-        self.tray = TrayManager(
-            on_show=self._show,
-            on_toggle_recording=lambda: self.after(0, self._toggle_recording),
-            on_quit=self._quit,
-        )
+        if _TRAY_AVAILABLE:
+            self.tray = TrayManager(
+                on_show=self._show,
+                on_toggle_recording=lambda: self.after(0, self._toggle_recording),
+                on_quit=self._quit,
+            )
+        else:
+            self.tray = None
 
         self.auto_typer = AutoTyper()
         self.overlay = RecordingOverlay()
@@ -111,6 +128,7 @@ class VoxFlowApp(ctk.CTk):
         self._start_services()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.bind("<Configure>", self._on_window_configure)
         self._animate()
 
     # ═══════════════════════════════════════════════════════════════
@@ -634,18 +652,18 @@ class VoxFlowApp(ctk.CTk):
     # ── Footer ────────────────────────────────────────────────────
 
     def _build_footer(self):
-        f = ctk.CTkFrame(self.main, fg_color="transparent")
-        f.pack(fill="x", pady=(0, 4))
+        self.footer_frame = ctk.CTkFrame(self.main, fg_color="transparent")
+        self.footer_frame.pack(fill="x", pady=(0, 4))
 
         ctk.CTkLabel(
-            f,
+            self.footer_frame,
             text=f"VoxFlow v{__version__}  •  faster-whisper  •  100% lokalne",
             font=ctk.CTkFont(size=9),
             text_color=C["txt3"],
         ).pack()
 
         ctk.CTkLabel(
-            f,
+            self.footer_frame,
             text=f"Open Source  •  {__author__}",
             font=ctk.CTkFont(size=9, weight="bold"),
             text_color=C["accent_dim"],
@@ -661,10 +679,9 @@ class VoxFlowApp(ctk.CTk):
             self._settings_visible = False
             self.settings_btn.configure(fg_color=C["bg_card"])
         else:
-            children = self.main.winfo_children()
             self.settings_frame.pack(
                 fill="x", pady=(0, 6),
-                before=children[-1],
+                before=self.footer_frame,  # Always insert just before footer
             )
             self._settings_visible = True
             self.settings_btn.configure(fg_color=C["accent_dim"])
@@ -767,6 +784,49 @@ class VoxFlowApp(ctk.CTk):
             text=f"🎙 Mikrofon: {dev_name[:40]}", text_color=C["ok"]
         )
 
+    def _on_device_fallback(self, fallback_index: int):
+        """Called by AudioRecorder when it falls back to the default device."""
+        self.config.audio_device_index = fallback_index
+        self.config.save()
+        # Update mic dropdown to show "Domyślny mikrofon"
+        self.after(0, lambda: (
+            self.mic_var.set("🎤 Domyślny mikrofon")
+            if hasattr(self, "mic_var") else None
+        ))
+        self.after(
+            0,
+            lambda: self.status.configure(
+                text="⚠️ Mikrofon niedostępny, przełączono na domyślny",
+                text_color=C["warn"],
+            ),
+        )
+
+    def _on_window_configure(self, event=None):
+        """Save window dimensions whenever the window is resized.
+
+        Debounced: cancels any pending save and schedules a new one
+        400 ms after the last resize event.
+        """
+        if hasattr(self, "_resize_job") and self._resize_job:
+            try:
+                self.after_cancel(self._resize_job)
+            except Exception:
+                pass
+        self._resize_job = self.after(400, self._save_window_size)
+
+    def _save_window_size(self):
+        """Persist the current window dimensions to config."""
+        try:
+            w = self.winfo_width()
+            h = self.winfo_height()
+            if w > 100 and h > 100:  # sanity check
+                self.config.window_width = w
+                self.config.window_height = h
+                self.config.save()
+        except Exception:
+            pass
+        self._resize_job = None
+
     # ═══════════════════════════════════════════════════════════════
     # RECORDING (Hold-to-Record)
     # ═══════════════════════════════════════════════════════════════
@@ -790,7 +850,8 @@ class VoxFlowApp(ctk.CTk):
             return
         self._recording = True
         self.status.configure(text="🔴 Nagrywam... Mów teraz!", text_color=C["rec_red"])
-        self.tray.set_recording(True)
+        if self.tray:
+            self.tray.set_recording(True)
         if self.config.play_sounds:
             sounds.play("start")
         self.overlay.show(self)
@@ -801,7 +862,8 @@ class VoxFlowApp(ctk.CTk):
             return
         self._recording = False
         self._processing = True
-        self.tray.set_recording(False)
+        if self.tray:
+            self.tray.set_recording(False)
         self.overlay.hide()
         if self.config.play_sounds:
             sounds.play("stop")

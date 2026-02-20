@@ -11,6 +11,15 @@ Supports:
 import threading
 from typing import Optional, Callable
 
+# Keys that should NOT be accepted as standalone hotkeys (only as modifiers)
+_MODIFIER_KEYS = frozenset({
+    "shift", "ctrl", "alt", "windows", "win",
+    "left shift", "right shift",
+    "left ctrl", "right ctrl",
+    "left alt", "right alt",
+    "left windows", "right windows",
+})
+
 
 class HotkeyManager:
     """Manages hold-to-record hotkey using keyboard hook.
@@ -80,25 +89,40 @@ class HotkeyManager:
         if was_active:
             self.start()
 
-    def capture_next_key(self, timeout: float = 5.0) -> Optional[str]:
-        """Block and wait for the next key press, return its name.
-        
-        Used by the UI to let users interactively pick their hotkey.
-        Returns None if timeout expires or an error occurs.
+    def capture_next_key(self, timeout: float = 8.0) -> Optional[str]:
+        """Wait for the next key press and return its name.
+
+        Runs in a background thread with a strict timeout so it can't
+        hang the UI. Press Escape to cancel.
+
+        Returns:
+            Key name string, or None if timeout/cancelled/error.
         """
-        try:
-            import keyboard
-            event = keyboard.read_event(suppress=False)
-            if event and event.event_type == "down":
-                name = event.name.lower()
-                # Filter out just-modifier presses
-                if name not in ("shift", "ctrl", "alt", "windows", "left shift",
-                                "right shift", "left ctrl", "right ctrl",
-                                "left alt", "right alt"):
-                    return name
-        except Exception as e:
-            print(f"capture_next_key error: {e}")
-        return None
+        result: list[Optional[str]] = [None]
+        done = threading.Event()
+
+        def _read():
+            try:
+                import keyboard
+                while not done.is_set():
+                    event = keyboard.read_event(suppress=False)
+                    if event and event.event_type == "down":
+                        name = event.name.lower()
+                        if name == "escape":
+                            done.set()  # cancelled
+                            return
+                        if name not in _MODIFIER_KEYS:
+                            result[0] = name
+                            done.set()
+                            return
+            except Exception as e:
+                print(f"capture_next_key error: {e}")
+                done.set()
+
+        t = threading.Thread(target=_read, daemon=True)
+        t.start()
+        done.wait(timeout=timeout)
+        return result[0]
 
     def _on_key_event(self, event):
         """Handle single key events — detect press (down) and release (up)."""
