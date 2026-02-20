@@ -19,7 +19,11 @@ def get_config_dir() -> Path:
 # Valid value ranges for security validation
 _VALID_MODELS = {"tiny", "base", "small", "medium", "large-v3"}
 _VALID_LANGUAGES = {"auto", "pl", "en"}
-_VALID_HOTKEYS = {"f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10"}
+_VALID_HOTKEYS = {
+    "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10",
+    "ctrl+space", "ctrl+shift+space", "caps lock", "insert",
+    "scroll lock", "pause",
+}
 _VALID_TYPING_METHODS = {"clipboard", "keyboard"}
 _VALID_THEMES = {"dark", "light"}
 
@@ -82,6 +86,8 @@ def _validate_config(data: dict) -> dict:
             validated[key] = max(500, min(1080, int(value)))
         elif key == "vad_silence_ms":
             validated[key] = max(50, min(5000, int(value)))
+        elif key == "audio_device_index":
+            validated[key] = int(value)  # -1 = default device
         else:
             validated[key] = value
     
@@ -104,6 +110,9 @@ class VoxFlowConfig:
     silence_duration: float = 2.0
     max_recording_duration: float = 300.0  # 5 min max
 
+    # Audio device (-1 = system default)
+    audio_device_index: int = -1
+
     # Hotkey - hold-to-record
     hotkey: str = "f2"
 
@@ -120,7 +129,7 @@ class VoxFlowConfig:
     play_sounds: bool = True
     theme: str = "dark"
     window_width: int = 500
-    window_height: int = 750
+    window_height: int = 780
 
     # Advanced
     beam_size: int = 5
@@ -166,7 +175,11 @@ class VoxFlowConfig:
 
     @property
     def available_hotkeys(self) -> list:
-        return ["f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10"]
+        return [
+            "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10",
+            "ctrl+space", "ctrl+shift+space", "caps lock", "insert",
+            "scroll lock",
+        ]
 
     @property
     def available_typing_methods(self) -> dict:

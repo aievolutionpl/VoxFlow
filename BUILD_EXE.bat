@@ -19,30 +19,7 @@ echo  STEP 1: Building VoxFlow .exe
 echo ═══════════════════════════════════════════
 echo.
 
-pyinstaller ^
-    --name "VoxFlow" ^
-    --icon "assets\voxflow.ico" ^
-    --onedir ^
-    --windowed ^
-    --noconfirm ^
-    --clean ^
-    --add-data "voxflow;voxflow" ^
-    --add-data "assets;assets" ^
-    --hidden-import "faster_whisper" ^
-    --hidden-import "ctranslate2" ^
-    --hidden-import "huggingface_hub" ^
-    --hidden-import "tokenizers" ^
-    --hidden-import "sounddevice" ^
-    --hidden-import "customtkinter" ^
-    --hidden-import "pystray" ^
-    --hidden-import "keyboard" ^
-    --hidden-import "pyperclip" ^
-    --hidden-import "_sounddevice_data" ^
-    --hidden-import "scipy" ^
-    --collect-all "customtkinter" ^
-    --collect-all "faster_whisper" ^
-    --collect-all "ctranslate2" ^
-    voxflow/main.py
+pyinstaller VoxFlow.spec --noconfirm --clean
 
 if %errorlevel% neq 0 (
     echo.
