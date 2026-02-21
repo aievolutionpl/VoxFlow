@@ -450,15 +450,14 @@ class VoxFlowApp(ctk.CTk):
         ).pack(side="right")
 
         self.textbox = ctk.CTkTextbox(
-            card,
-            font=ctk.CTkFont(family="Segoe UI", size=14),
-            fg_color="transparent",
-            text_color=C["txt"],
-            wrap="word", height=90, border_width=0,
-        )
-        self.textbox.pack(fill="both", expand=True, padx=14, pady=(6, 10))
-        self.textbox.insert("1.0", "Twój tekst pojawi się tutaj...")
-        self.textbox.configure(state="disabled")
+        card,
+        font=ctk.CTkFont(family="Segoe UI", size=14),
+        fg_color="transparent",
+        text_color=C["txt"],
+        wrap="word", height=90, border_width=0,
+    )
+    self.textbox.pack(fill="both", expand=True, padx=14, pady=(6, 10))
+    self.textbox.insert("1.0", "Twój tekst pojawi się tutaj — możesz go edytować przed skopiowaniem...")
 
     # ── Quick Controls (language / model / hotkey) ─────────────────
 
@@ -638,7 +637,42 @@ class VoxFlowApp(ctk.CTk):
         self.autostart_var = ctk.BooleanVar(value=is_autostart_enabled())
         sw_row(inner, "🚀 Uruchamiaj z Windows", self.autostart_var, self._on_autostart_toggle)
 
-        ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(8, 6))
+        # ── Color theme selector ───────────────────────
+        ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(10, 8))
+
+        ctk.CTkLabel(
+            inner, text="🎨 Motyw kolorów",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=C["txt2"],
+        ).pack(anchor="w", pady=(0, 6))
+
+        theme_row = ctk.CTkFrame(inner, fg_color="transparent")
+        theme_row.pack(fill="x")
+
+        THEMES = [
+            ("Fioletowy", "#7c3aed", "#09091a"),
+            ("Niebieski",  "#1d4ed8", "#080e1a"),
+            ("Zielony",   "#059669", "#08130f"),
+        ]
+
+        def _apply_theme(accent, bg):
+            C["accent"] = accent
+            C["accent2"] = accent
+            C["accent_dim"] = accent
+            C["bg"] = bg
+            self.configure(fg_color=bg)
+            self.config.save()
+
+        for label, accent, bg in THEMES:
+            ctk.CTkButton(
+                theme_row, text=label, width=100, height=30,
+                font=ctk.CTkFont(size=11),
+                fg_color=accent, hover_color=accent,
+                corner_radius=8,
+                command=lambda a=accent, b=bg: _apply_theme(a, b),
+            ).pack(side="left", padx=(0, 6))
+
+        ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(10, 6))
 
         ctk.CTkLabel(
             inner,
@@ -648,6 +682,7 @@ class VoxFlowApp(ctk.CTk):
             text_color=C["txt3"],
             justify="left",
         ).pack(anchor="w")
+
 
     # ── Footer ────────────────────────────────────────────────────
 
@@ -736,7 +771,11 @@ class VoxFlowApp(ctk.CTk):
         if key:
             self.config.hotkey = key
             self.config.save()
-            self.hotkey_manager.update_hotkey(key)
+            # BUGFIX: update_hotkey checks was_active which is False after stop(),
+            # so we update the key manually and always call start().
+            self.hotkey_manager.hotkey = key.lower()
+            self.hotkey_manager._is_combo = "+" in key
+            self.hotkey_manager.start()
             display = key.upper().replace("+", " + ")
             self.hotkey_btn.configure(
                 text=display,
@@ -753,7 +792,7 @@ class VoxFlowApp(ctk.CTk):
             # Reset border after 2s
             self.after(2000, lambda: self.hotkey_btn.configure(border_color=C["border2"]))
         else:
-            # Cancelled / timeout
+            # Cancelled / timeout — restart with old hotkey
             self.hotkey_btn.configure(
                 text=self.config.hotkey.upper().replace("+", " + "),
                 fg_color=C["bg_input"],
@@ -900,11 +939,9 @@ class VoxFlowApp(ctk.CTk):
             self.status.configure(text="🤔 Nie rozpoznano mowy", text_color=C["warn"])
             return
 
-        # Update transcript box
-        self.textbox.configure(state="normal")
+        # Update transcript box (always editable — user can fix before copying)
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
-        self.textbox.configure(state="disabled")
 
         # Auto-copy
         if self.config.auto_copy_to_clipboard:
@@ -1077,10 +1114,9 @@ class VoxFlowApp(ctk.CTk):
             )
 
     def _copy_text(self):
-        self.textbox.configure(state="normal")
         t = self.textbox.get("1.0", "end").strip()
-        self.textbox.configure(state="disabled")
-        if t and t != "Twój tekst pojawi się tutaj...":
+        placeholder = "Twój tekst pojawi się tutaj"
+        if t and not t.startswith(placeholder):
             pyperclip.copy(t)
             self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
 
