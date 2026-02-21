@@ -450,14 +450,14 @@ class VoxFlowApp(ctk.CTk):
         ).pack(side="right")
 
         self.textbox = ctk.CTkTextbox(
-        card,
-        font=ctk.CTkFont(family="Segoe UI", size=14),
-        fg_color="transparent",
-        text_color=C["txt"],
-        wrap="word", height=90, border_width=0,
-    )
-    self.textbox.pack(fill="both", expand=True, padx=14, pady=(6, 10))
-    self.textbox.insert("1.0", "Twój tekst pojawi się tutaj — możesz go edytować przed skopiowaniem...")
+            card,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
+            fg_color="transparent",
+            text_color=C["txt"],
+            wrap="word", height=90, border_width=0,
+        )
+        self.textbox.pack(fill="both", expand=True, padx=14, pady=(6, 10))
+        self.textbox.insert("1.0", "Twój tekst pojawi się tutaj — możesz go edytować przed skopiowaniem...")
 
     # ── Quick Controls (language / model / hotkey) ─────────────────
 
