@@ -28,4 +28,4 @@ Ten kodeks oparty jest na [Contributor Covenant v2.1](https://www.contributor-co
 
 ---
 
-*Projekt [AI Evolution Polska](https://github.com/AI-Evolution-Polska)*
+*Projekt [AI Evolution Polska](https://github.com/aievolutionpl)*

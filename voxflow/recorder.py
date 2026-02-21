@@ -1,4 +1,4 @@
-"""VoxFlow Audio Recorder - Captures microphone input."""
+"""VoxFlow Audio Recorder - Captures microphone input with device selection."""
 import threading
 import numpy as np
 import sounddevice as sd
@@ -15,14 +15,18 @@ class AudioRecorder:
         silence_threshold: float = 0.01,
         silence_duration: float = 2.0,
         max_duration: float = 300.0,
+        device_index: int = -1,
         on_level_change: Optional[Callable[[float], None]] = None,
+        on_device_fallback: Optional[Callable[[int], None]] = None,
     ):
         self.sample_rate = sample_rate
         self.channels = channels
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.max_duration = max_duration
+        self.device_index = device_index  # -1 = system default
         self.on_level_change = on_level_change
+        self.on_device_fallback = on_device_fallback
 
         self._recording = False
         self._audio_chunks: list[np.ndarray] = []
@@ -35,8 +39,12 @@ class AudioRecorder:
     def is_recording(self) -> bool:
         return self._recording
 
+    def set_device(self, device_index: int):
+        """Change the audio input device. Takes effect on next start()."""
+        self.device_index = device_index
+
     def start(self):
-        """Start recording audio from the default microphone."""
+        """Start recording audio from the selected microphone."""
         if self._recording:
             return
 
@@ -45,14 +53,42 @@ class AudioRecorder:
         self._silence_counter = 0
         self._has_speech = False
 
-        self._stream = sd.InputStream(
-            samplerate=self.sample_rate,
-            channels=self.channels,
-            dtype="float32",
-            blocksize=int(self.sample_rate * 0.1),  # 100ms blocks
-            callback=self._audio_callback,
-        )
-        self._stream.start()
+        # Resolve device: -1 → None (sounddevice default)
+        device = None if self.device_index < 0 else self.device_index
+
+        try:
+            self._stream = sd.InputStream(
+                device=device,
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                dtype="float32",
+                blocksize=int(self.sample_rate * 0.1),  # 100ms blocks
+                callback=self._audio_callback,
+            )
+            self._stream.start()
+        except Exception as e:
+            self._recording = False
+            # Retry with default device if selected one fails
+            if device is not None:
+                print(f"Device {device} failed, falling back to default: {e}")
+                self.device_index = -1
+                # Notify app so it can update UI and config permanently
+                if self.on_device_fallback:
+                    try:
+                        self.on_device_fallback(-1)
+                    except Exception:
+                        pass
+                self._stream = sd.InputStream(
+                    samplerate=self.sample_rate,
+                    channels=self.channels,
+                    dtype="float32",
+                    blocksize=int(self.sample_rate * 0.1),
+                    callback=self._audio_callback,
+                )
+                self._recording = True
+                self._stream.start()
+            else:
+                raise
 
     def stop(self) -> Optional[np.ndarray]:
         """Stop recording and return the audio data as a numpy array."""
@@ -124,3 +160,12 @@ class AudioRecorder:
                     "sample_rate": dev["default_samplerate"],
                 })
         return input_devices
+
+    @staticmethod
+    def get_default_device_name() -> str:
+        """Get the name of the current default input device."""
+        try:
+            default = sd.query_devices(kind="input")
+            return default.get("name", "Domyślny")
+        except Exception:
+            return "Domyślny"

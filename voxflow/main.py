@@ -10,6 +10,13 @@ def main():
     # Set environment for better compatibility
     os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
+    # Fix encoding for Windows consoles
+    if sys.platform == "win32":
+        if sys.stdout is not None:
+            sys.stdout.reconfigure(encoding='utf-8')
+        if sys.stderr is not None:
+            sys.stderr.reconfigure(encoding='utf-8')
+
     # Handle --test mode
     if "--test" in sys.argv:
         print("🧪 VoxFlow Test Mode")
