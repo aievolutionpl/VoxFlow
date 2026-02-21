@@ -71,8 +71,8 @@ echo.
 
 call venv\Scripts\activate.bat
 
-pip install --upgrade pip --quiet --disable-pip-version-check
-pip install -r requirements.txt --disable-pip-version-check
+venv\Scripts\python.exe -m pip install --upgrade pip --quiet --disable-pip-version-check
+venv\Scripts\python.exe -m pip install -r requirements.txt --disable-pip-version-check
 
 if %errorlevel% neq 0 (
     echo.
