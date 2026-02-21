@@ -9,67 +9,69 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-lightgrey)](https://github.com/aievolutionpl/VoxFlow)
 [![by AI Evolution Polska](https://img.shields.io/badge/by-AI_Evolution_Polska-7c3aed)](https://github.com/aievolutionpl)
 
-**VoxFlow** to bezpłatne narzędzie do dyktowania głosem.  
+VoxFlow to bezpłatne narzędzie do dyktowania głosem.  
 Przytrzymaj klawisz → mów → tekst pojawia się w aktywnym oknie. Zero chmury, zero subskrypcji.
 
 </div>
 
 ---
 
-## ⚡ Szybki start (Windows) — 3 kroki
+## ⚡ Instalacja Windows — krok po kroku
 
-> **Wymagania:** Windows 10/11 (64-bit), mikrofon, połączenie z internetem (tylko przy pierwszym uruchomieniu do pobrania modelu AI ~500 MB)
+> Wymagania: Windows 10/11 (64-bit), mikrofon, internet (tylko przy pierwszym uruchomieniu — pobranie modelu AI ~500 MB)
 
 ### Krok 1 — Zainstaluj Python
 
-Pobierz Python 3.10+ ze strony **[python.org/downloads](https://www.python.org/downloads/)**.
-
-> ⚠️ **Ważne:** podczas instalacji zaznacz opcję **"Add Python to PATH"**!
+1. Wejdź na stronę [python.org/downloads](https://www.python.org/downloads/)
+2. Pobierz Python 3.10 lub nowszy
+3. Uruchom instalator
+4. WAŻNE: zaznacz opcję "Add Python to PATH" przed kliknięciem Install
 
 ### Krok 2 — Zainstaluj VoxFlow
 
-Kliknij dwukrotnie plik **`install.bat`** i poczekaj aż zakończy instalację (~2–5 minut).
+1. Pobierz lub rozpakuj folder VoxFlow na dysk
+2. Kliknij dwukrotnie plik `install.bat`
+3. Poczekaj aż zakończy instalację (2–5 minut) — instaluje wymagane biblioteki AI
 
 ### Krok 3 — Uruchom
 
-Kliknij dwukrotnie **`START_VOXFLOW.bat`** (tworzony automatycznie przez install.bat).
+Kliknij dwukrotnie `START_VOXFLOW.bat` (tworzony automatycznie przez install.bat).
+
+Gotowe — VoxFlow jest teraz uruchomiony i widoczny w zasobniku systemowym (prawy dolny róg ekranu).
 
 ---
 
-## 🖥️ Jak działa VoxFlow?
+## 🖥️ Jak używać
 
 | Akcja | Efekt |
 |-------|-------|
-| Przytrzymaj `F2` i mów | 🔴 Nagrywa — animacja fal pojawia się na dole ekranu |
-| Zwolnij `F2` | ⏳ AI przetwarza mowę → tekst wklejony w aktywnym oknie |
-| Kliknij przycisk klawisza w UI | Ustaw własny klawisz dyktowania |
+| Przytrzymaj `F2` i mów | Nagrywa — na dole ekranu pojawia się animacja fal |
+| Zwolnij `F2` | AI przetwarza mowę i wkleja tekst w aktywnym oknie |
+| Kliknij przycisk klawisza w UI | Zmień skrót klawiszowy na dowolny inny |
 | Kliknij dropdown mikrofonu | Wybierz urządzenie audio |
-| Kliknij `⚙` | Otwórz zaawansowane ustawienia |
-
-Po uruchomieniu VoxFlow minimalizuje się do **ikony w zasobniku systemowym** (prawy dolny róg).  
-Podwójne kliknięcie na ikonę → przywraca okno.
+| Kliknij ikonę w zasobniku prawym przyciskiem | Menu: pokaż okno, nagraj, zamknij |
 
 ---
 
 ## 📦 Wersja EXE (bez Pythona)
 
-Jeśli chcesz wersję gotową `.exe` — **nie wymaga Pythona**:
+Jeśli chcesz wersję, która nie wymaga instalacji Pythona:
 
-**Opcja A — Instalator (zalecana):**
+Opcja A — Instalator (zalecana):
 
 ```
-BUILD_EXE.bat → tworzy VoxFlow_Setup.exe
+BUILD_EXE.bat  →  tworzy VoxFlow_Setup.exe
 ```
 
 Wymaga [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 
-**Opcja B — Portable:**
+Opcja B — Portable (nie wymaga instalacji):
 
 ```
-CREATE_PORTABLE.bat → tworzy folder dist\VoxFlow_Portable_v1.1.0\
+CREATE_PORTABLE.bat  →  tworzy dist\VoxFlow_Portable_v1.1.0\
 ```
 
-Uruchom `START_VOXFLOW.bat` z folderu portable — gotowe, bez instalacji.
+Uruchom `START_VOXFLOW.bat` z folderu portable.
 
 ---
 
@@ -97,7 +99,7 @@ Uruchom `START_VOXFLOW.bat` z folderu portable — gotowe, bez instalacji.
 |-------|---------|----------|--------|----------|
 | `tiny` | ~75 MB | ⚡⚡⚡⚡ | ⭐⭐ | Testy |
 | `base` | ~150 MB | ⚡⚡⚡ | ⭐⭐⭐ | Słaby PC |
-| `small` | ~500 MB | ⚡⚡ | ⭐⭐⭐⭐ | **Zalecany** |
+| `small` | ~500 MB | ⚡⚡ | ⭐⭐⭐⭐ | Zalecany |
 | `medium` | ~1.5 GB | ⚡ | ⭐⭐⭐⭐⭐ | Dobry PC |
 | `large-v3` | ~3 GB | 🐢 | ⭐⭐⭐⭐⭐ | GPU |
 
@@ -112,20 +114,20 @@ chmod +x install_mac.sh
 ./install_mac.sh
 ```
 
-> ⚠️ Globalny hotkey wymaga uprawnień **Accessibility** w System Settings.  
+> Globalny hotkey wymaga uprawnień Accessibility w System Settings.  
 > Szczegóły: [INSTALL_MAC.md](INSTALL_MAC.md)
 
 ---
 
 ## 📜 Licencja
 
-MIT License — bezpłatny, open source. Użyj, modyfikuj, dystrybuuj bez ograniczeń.
+MIT License — bezpłatny, open source. Używaj, modyfikuj i dystrybuuj bez ograniczeń.
 
 ---
 
 <div align="center">
 
-**AI Evolution Polska** — Bezpłatne narzędzia AI dla polskich użytkowników
+AI Evolution Polska — Bezpłatne narzędzia AI dla polskich użytkowników
 
 [![GitHub](https://img.shields.io/badge/GitHub-aievolutionpl-181717?logo=github)](https://github.com/aievolutionpl)
 
