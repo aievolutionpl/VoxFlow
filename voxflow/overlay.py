@@ -1,24 +1,31 @@
 """VoxFlow Recording Overlay — On-screen animation while recording.
 
-Shows a small floating, always-on-top indicator with a pulsing red dot
-and audio waveform animation. The overlay is transparent and click-through
+Shows a sleek floating bar at the BOTTOM-CENTER of the screen with
+an animated audio waveform. The overlay is transparent and click-through
 so it doesn't interfere with the user's work.
 
 Built by AI Evolution Polska
 """
 import threading
 import math
-import time
 import tkinter as tk
 from typing import Optional
 
 
 class RecordingOverlay:
-    """Floating overlay that shows recording animation on screen."""
+    """Floating overlay that shows recording waveform animation at bottom of screen."""
 
-    WIDTH = 200
-    HEIGHT = 60
-    CORNER_MARGIN = 20
+    WIDTH = 560
+    HEIGHT = 72
+    BOTTOM_MARGIN = 80   # pixels from bottom of screen
+
+    # Colours
+    BG     = "#0d0d1f"
+    BORDER = "#7c3aed"
+    RED    = "#ef4444"
+    PURPLE = "#a78bfa"
+    PURPLE2 = "#7c3aed"
+    GREY   = "#94a3b8"
 
     def __init__(self):
         self._root: Optional[tk.Toplevel] = None
@@ -26,8 +33,9 @@ class RecordingOverlay:
         self._alive = False
         self._phase = 0.0
         self._level = 0.0
-        self._thread: Optional[threading.Thread] = None
         self._parent = None
+
+    # ── Public API ────────────────────────────────────────────────
 
     def show(self, parent=None):
         """Show the recording overlay on screen."""
@@ -38,8 +46,7 @@ class RecordingOverlay:
         if parent:
             parent.after(0, self._create_window)
         else:
-            self._thread = threading.Thread(target=self._run_standalone, daemon=True)
-            self._thread.start()
+            threading.Thread(target=self._run_standalone, daemon=True).start()
 
     def hide(self):
         """Hide the recording overlay."""
@@ -59,7 +66,9 @@ class RecordingOverlay:
 
     def set_level(self, level: float):
         """Update the audio level (0.0 - 1.0)."""
-        self._level = min(1.0, level * 5)
+        self._level = min(1.0, max(0.0, level))
+
+    # ── Window management ─────────────────────────────────────────
 
     def _create_window(self):
         """Create the overlay window (must be called from main thread)."""
@@ -70,22 +79,22 @@ class RecordingOverlay:
                 self._root = tk.Tk()
 
             win = self._root
-            win.overrideredirect(True)  # No window decorations
-            win.attributes("-topmost", True)  # Always on top
-            win.attributes("-alpha", 0.9)  # Slightly transparent
+            win.overrideredirect(True)          # No title bar / borders
+            win.attributes("-topmost", True)    # Always on top
+            win.attributes("-alpha", 0.93)      # Slightly transparent
 
-            # Position: top-right corner of screen
+            # Position: bottom-center of screen
             screen_w = win.winfo_screenwidth()
-            x = screen_w - self.WIDTH - self.CORNER_MARGIN
-            y = self.CORNER_MARGIN
+            screen_h = win.winfo_screenheight()
+            x = (screen_w - self.WIDTH) // 2
+            y = screen_h - self.HEIGHT - self.BOTTOM_MARGIN
             win.geometry(f"{self.WIDTH}x{self.HEIGHT}+{x}+{y}")
 
-            # Dark background with rounded appearance
-            win.configure(bg="#1a1a2e")
-            
+            win.configure(bg=self.BG)
+
             self._canvas = tk.Canvas(
                 win, width=self.WIDTH, height=self.HEIGHT,
-                bg="#1a1a2e", highlightthickness=0,
+                bg=self.BG, highlightthickness=0,
             )
             self._canvas.pack(fill="both", expand=True)
 
@@ -94,7 +103,6 @@ class RecordingOverlay:
             print(f"Overlay error: {e}")
 
     def _destroy_window(self):
-        """Destroy the overlay window."""
         try:
             if self._root:
                 self._root.destroy()
@@ -104,88 +112,110 @@ class RecordingOverlay:
         self._canvas = None
 
     def _run_standalone(self):
-        """Run overlay in its own event loop (fallback)."""
         self._create_window()
         if self._root:
             self._root.mainloop()
 
+    # ── Animation ─────────────────────────────────────────────────
+
     def _animate(self):
-        """Animation loop — pulsing dot + waveform bars."""
         if not self._alive or not self._canvas:
             return
 
-        self._phase += 0.15
+        self._phase += 0.12
         c = self._canvas
+        W, H = self.WIDTH, self.HEIGHT
         c.delete("all")
 
-        # Background rounded rect
-        self._round_rect(c, 2, 2, self.WIDTH - 2, self.HEIGHT - 2, 12, 
-                         fill="#1a1a2e", outline="#ef4444", width=2)
+        # ── Rounded background panel ──────────────────────────────
+        self._round_rect(c, 2, 2, W - 2, H - 2, r=16,
+                         fill=self.BG, outline=self.BORDER, width=2)
 
-        # Pulsing red dot
-        pulse = (math.sin(self._phase * 2) + 1) / 2
-        dot_r = 6 + pulse * 3
-        dot_x, dot_y = 22, self.HEIGHT // 2
-        # Glow
-        glow_r = dot_r + 4 + pulse * 4
-        c.create_oval(dot_x - glow_r, dot_y - glow_r,
-                      dot_x + glow_r, dot_y + glow_r,
-                      fill="#ef444430", outline="")
-        # Dot
-        c.create_oval(dot_x - dot_r, dot_y - dot_r,
-                      dot_x + dot_r, dot_y + dot_r,
-                      fill="#ef4444", outline="#dc2626", width=1)
+        # ── Pulsing mic icon (left side) ──────────────────────────
+        pulse = (math.sin(self._phase * 2.5) + 1) / 2
+        cx, cy = 36, H // 2
 
-        # "REC" text
-        c.create_text(48, dot_y - 8, text="● REC", fill="#ef4444",
-                      font=("Segoe UI", 11, "bold"), anchor="w")
-        # "VoxFlow" small
-        c.create_text(48, dot_y + 10, text="VoxFlow • AIEP", fill="#94a3b8",
-                      font=("Segoe UI", 8), anchor="w")
+        # Outer glow ring
+        glow_r = 18 + pulse * 5
+        c.create_oval(cx - glow_r, cy - glow_r,
+                      cx + glow_r, cy + glow_r,
+                      fill="", outline=self.RED, width=1)
 
-        # Waveform bars (right side)
-        bar_start = 115
-        num_bars = 10
-        bar_width = 4
-        bar_gap = 3
-        max_h = 20
+        # Inner filled dot
+        dot_r = 12 + pulse * 3
+        c.create_oval(cx - dot_r, cy - dot_r,
+                      cx + dot_r, cy + dot_r,
+                      fill=self.RED, outline="")
+
+        # Mic body (white)
+        c.create_oval(cx - 5, cy - 10, cx + 5, cy + 1,
+                      fill="white", outline="")
+        # Mic stand
+        c.create_line(cx, cy + 1, cx, cy + 8, fill="white", width=2)
+        c.create_line(cx - 6, cy + 8, cx + 6, cy + 8, fill="white", width=2)
+
+        # ── Label text ────────────────────────────────────────────
+        c.create_text(64, cy - 10, text="🎤  Nagrywam...",
+                      fill=self.RED, font=("Segoe UI", 11, "bold"), anchor="w")
+        c.create_text(64, cy + 9, text="VoxFlow • zwolnij klawisz aby zakończyć",
+                      fill=self.GREY, font=("Segoe UI", 8), anchor="w")
+
+        # ── Waveform bars (right section) ─────────────────────────
+        num_bars = 28
+        bar_w = 4
+        bar_gap = 2
+        bar_section_x = 240
+        max_h = 22
 
         for i in range(num_bars):
-            # Mix of audio level and animation
-            wave = abs(math.sin(self._phase * 2.5 + i * 0.6))
-            amp = (self._level * 0.7 + wave * 0.3) * max_h + 2
-            x = bar_start + i * (bar_width + bar_gap)
-            cy = self.HEIGHT // 2
+            # Combine audio level with animated sine waves
+            t = self._phase * 2.8 + i * 0.42
+            wave1 = abs(math.sin(t))
+            wave2 = abs(math.sin(t * 1.37 + 1.2)) * 0.5
+            combined = wave1 * 0.55 + wave2 * 0.15
 
-            # Color gradient from purple to red based on amplitude
-            if amp > max_h * 0.7:
-                color = "#ef4444"
-            elif amp > max_h * 0.4:
-                color = "#a78bfa"
+            # Boost by real audio level
+            amp = (combined + self._level * 0.6) * max_h + 3
+            amp = min(amp, max_h)
+
+            x = bar_section_x + i * (bar_w + bar_gap)
+            bar_cy = cy
+
+            # Colour gradient: centre bars brighter
+            ratio = amp / max_h
+            if ratio > 0.75:
+                color = self.RED
+            elif ratio > 0.45:
+                color = self.PURPLE
             else:
-                color = "#8b5cf6"
+                color = self.PURPLE2
 
-            c.create_rectangle(x, cy - amp, x + bar_width, cy + amp,
-                               fill=color, outline="")
+            # Draw symmetric bar
+            c.create_rectangle(
+                x, bar_cy - amp, x + bar_w, bar_cy + amp,
+                fill=color, outline="",
+            )
+            # Rounded cap top
+            c.create_oval(
+                x, bar_cy - amp - 2, x + bar_w, bar_cy - amp + 2,
+                fill=color, outline="",
+            )
 
         try:
             if self._root:
-                self._root.after(50, self._animate)
+                self._root.after(40, self._animate)
         except Exception:
             pass
 
+    # ── Helper ────────────────────────────────────────────────────
+
     @staticmethod
-    def _round_rect(canvas, x1, y1, x2, y2, radius, **kwargs):
-        """Draw a rounded rectangle on a canvas."""
-        r = radius
-        canvas.create_arc(x1, y1, x1 + 2*r, y1 + 2*r, start=90, extent=90,
-                          style="pieslice", **kwargs)
-        canvas.create_arc(x2 - 2*r, y1, x2, y1 + 2*r, start=0, extent=90,
-                          style="pieslice", **kwargs)
-        canvas.create_arc(x1, y2 - 2*r, x1 + 2*r, y2, start=180, extent=90,
-                          style="pieslice", **kwargs)
-        canvas.create_arc(x2 - 2*r, y2 - 2*r, x2, y2, start=270, extent=90,
-                          style="pieslice", **kwargs)
-        canvas.create_rectangle(x1 + r, y1, x2 - r, y2, **kwargs)
-        canvas.create_rectangle(x1, y1 + r, x1 + r, y2 - r, **kwargs)
-        canvas.create_rectangle(x2 - r, y1 + r, x2, y2 - r, **kwargs)
+    def _round_rect(canvas, x1, y1, x2, y2, r=12, **kw):
+        """Draw a rounded rectangle on a tk Canvas."""
+        canvas.create_arc(x1,     y1,     x1+2*r, y1+2*r, start=90,  extent=90,  style="pieslice", **kw)
+        canvas.create_arc(x2-2*r, y1,     x2,     y1+2*r, start=0,   extent=90,  style="pieslice", **kw)
+        canvas.create_arc(x1,     y2-2*r, x1+2*r, y2,     start=180, extent=90,  style="pieslice", **kw)
+        canvas.create_arc(x2-2*r, y2-2*r, x2,     y2,     start=270, extent=90,  style="pieslice", **kw)
+        canvas.create_rectangle(x1+r, y1,   x2-r, y2,   **kw)
+        canvas.create_rectangle(x1,   y1+r, x1+r, y2-r, **kw)
+        canvas.create_rectangle(x2-r, y1+r, x2,   y2-r, **kw)

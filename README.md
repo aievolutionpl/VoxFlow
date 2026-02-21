@@ -7,66 +7,105 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c3aed.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://python.org)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-lightgrey)](https://github.com/aievolutionpl/VoxFlow)
-[![AI Evolution Polska](https://img.shields.io/badge/by-AI_Evolution_Polska-7c3aed)](https://github.com/aievolutionpl)
+[![by AI Evolution Polska](https://img.shields.io/badge/by-AI_Evolution_Polska-7c3aed)](https://github.com/aievolutionpl)
 
-**VoxFlow** to bezpłatne, open-source narzędzie do dyktowania głosem na komputer.  
-Zamień głos w tekst jednym przytrzymaniem klawisza — bez chmury, bez subskrypcji.
-
-[🪟 Instalacja Windows](#-instalacja--windows) • [🍎 Instalacja macOS](#-instalacja--macos) • [✨ Funkcje](#-funkcje) • [📖 Użytkowanie](#-użytkowanie)
-
----
-
-> **Free & Open Source speech-to-text dictation for Windows and macOS.**  
-> Hold your hotkey → speak → text appears. 100% local, no cloud, no subscription.
+**VoxFlow** to bezpłatne narzędzie do dyktowania głosem.  
+Przytrzymaj klawisz → mów → tekst pojawia się w aktywnym oknie. Zero chmury, zero subskrypcji.
 
 </div>
 
 ---
 
-## ✨ Funkcje / Features
+## ⚡ Szybki start (Windows) — 3 kroki
+
+> **Wymagania:** Windows 10/11 (64-bit), mikrofon, połączenie z internetem (tylko przy pierwszym uruchomieniu do pobrania modelu AI ~500 MB)
+
+### Krok 1 — Zainstaluj Python
+
+Pobierz Python 3.10+ ze strony **[python.org/downloads](https://www.python.org/downloads/)**.
+
+> ⚠️ **Ważne:** podczas instalacji zaznacz opcję **"Add Python to PATH"**!
+
+### Krok 2 — Zainstaluj VoxFlow
+
+Kliknij dwukrotnie plik **`install.bat`** i poczekaj aż zakończy instalację (~2–5 minut).
+
+### Krok 3 — Uruchom
+
+Kliknij dwukrotnie **`START_VOXFLOW.bat`** (tworzony automatycznie przez install.bat).
+
+---
+
+## 🖥️ Jak działa VoxFlow?
+
+| Akcja | Efekt |
+|-------|-------|
+| Przytrzymaj `F2` i mów | 🔴 Nagrywa — animacja fal pojawia się na dole ekranu |
+| Zwolnij `F2` | ⏳ AI przetwarza mowę → tekst wklejony w aktywnym oknie |
+| Kliknij przycisk klawisza w UI | Ustaw własny klawisz dyktowania |
+| Kliknij dropdown mikrofonu | Wybierz urządzenie audio |
+| Kliknij `⚙` | Otwórz zaawansowane ustawienia |
+
+Po uruchomieniu VoxFlow minimalizuje się do **ikony w zasobniku systemowym** (prawy dolny róg).  
+Podwójne kliknięcie na ikonę → przywraca okno.
+
+---
+
+## 📦 Wersja EXE (bez Pythona)
+
+Jeśli chcesz wersję gotową `.exe` — **nie wymaga Pythona**:
+
+**Opcja A — Instalator (zalecana):**
+
+```
+BUILD_EXE.bat → tworzy VoxFlow_Setup.exe
+```
+
+Wymaga [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+
+**Opcja B — Portable:**
+
+```
+CREATE_PORTABLE.bat → tworzy folder dist\VoxFlow_Portable_v1.1.0\
+```
+
+Uruchom `START_VOXFLOW.bat` z folderu portable — gotowe, bez instalacji.
+
+---
+
+## ✨ Funkcje
 
 | 🇵🇱 | 🇬🇧 |
 |-----|-----|
-| 🎤 Dyktowanie trzymając klawisz | Hold-to-record with configurable hotkey |
-| 🌍 Polski + Angielski (auto-detekcja) | Polish + English (auto-detection) |
-| ⚡ 100% lokalne — zero chmury | 100% local — zero cloud |
+| 🎤 Dyktowanie przytrzymując klawisz | Hold-to-record hotkey |
+| 🌍 Polski + Angielski (auto-detekcja) | Polish + English (auto-detect) |
+| ⚡ 100% lokalne — zero chmury | 100% local — no cloud |
 | 🧠 OpenAI Whisper (faster-whisper) | OpenAI Whisper (faster-whisper) |
 | ✍️ Auto-wpisywanie w aktywne okno | Auto-type into active window |
-| 🎙 Wybór urządzenia mikrofonowego | Microphone device selection |
-| ⌨️ Dowolny klawisz (naciśnij aby ustawić) | Any hotkey (press to set) |
+| 🎙 Wybór mikrofonu | Microphone device selection |
+| ⌨️ Dowolny klawisz dyktowania | Configurable hotkey |
 | 📋 Auto-kopiowanie do schowka | Auto-copy to clipboard |
-| 🔲 Ikona w zasobniku systemowym | System tray icon |
+| 🌊 Animacja fal audio podczas nagrywania | Audio waveform animation |
+| 🔲 Ikona w zasobniku | System tray icon |
 | 📚 Historia nagrań | Recording history |
-| ✨ Autokorekta tekstu | Text auto-correction |
 
 ---
 
-## 🪟 Instalacja — Windows
+## 🧠 Modele Whisper
 
-### Wymagania
-- Windows 10 / 11 (64-bit)
-- **Python 3.9+** z opcją [Add Python to PATH](https://www.python.org/downloads/)
-- Mikrofon
+| Model | Rozmiar | Szybkość | Jakość | Dla kogo |
+|-------|---------|----------|--------|----------|
+| `tiny` | ~75 MB | ⚡⚡⚡⚡ | ⭐⭐ | Testy |
+| `base` | ~150 MB | ⚡⚡⚡ | ⭐⭐⭐ | Słaby PC |
+| `small` | ~500 MB | ⚡⚡ | ⭐⭐⭐⭐ | **Zalecany** |
+| `medium` | ~1.5 GB | ⚡ | ⭐⭐⭐⭐⭐ | Dobry PC |
+| `large-v3` | ~3 GB | 🐢 | ⭐⭐⭐⭐⭐ | GPU |
 
-### Instalacja w 2 krokach
-
-```
-1. Pobierz Python 3.10+ ze strony python.org (zaznacz "Add Python to PATH")
-2. Kliknij dwukrotnie install.bat
-```
-
-Szczegółowa instrukcja: [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md)
+> Model pobiera się automatycznie przy pierwszej zmianie (jednorazowo).
 
 ---
 
-## 🍎 Instalacja — macOS
-
-### Wymagania
-- macOS 11+ (Intel lub Apple Silicon M1/M2/M3)
-- Python 3.9+ (instalowany automatycznie)
-- Mikrofon
-
-### Instalacja w 2 krokach
+## 🍎 Instalacja macOS
 
 ```bash
 chmod +x install_mac.sh
@@ -78,56 +117,15 @@ chmod +x install_mac.sh
 
 ---
 
-## 📖 Użytkowanie / Usage
+## 📜 Licencja
 
-1. **Uruchom VoxFlow** — pojawi się okno aplikacji i ikona w zasobniku
-2. **Przytrzymaj klawisz** (domyślnie `F2`) i mów
-3. **Zwolnij klawisz** — tekst pojawi się automatycznie w aktywnym oknie
-4. **Zmień klawisz** — kliknij przycisk klawisza i naciśnij dowolny klawisz
-5. **Zmień mikrofon** — użyj dropdown'u z listą urządzeń
-
-### Obsługiwane klawisze
-`F2` `F3` `F4` `F5` `F6` `F7` `F8` `F9` `F10` `Ctrl+Space` `CapsLock` `Insert` i inne
+MIT License — bezpłatny, open source. Użyj, modyfikuj, dystrybuuj bez ograniczeń.
 
 ---
-
-## 🧠 Wybór modelu Whisper
-
-| Model | Rozmiar | Szybkość | Jakość | Rekomendacja |
-|-------|---------|----------|--------|--------------|
-| `tiny` | ~75 MB | ⚡⚡⚡⚡ | ⭐⭐ | Testy |
-| `base` | ~150 MB | ⚡⚡⚡ | ⭐⭐⭐ | Słaby PC |
-| `small` | ~500 MB | ⚡⚡ | ⭐⭐⭐⭐ | **Zalecany** |
-| `medium` | ~1.5 GB | ⚡ | ⭐⭐⭐⭐⭐ | Dobry PC |
-| `large-v3` | ~3 GB | 🐢 | ⭐⭐⭐⭐⭐ | GPU |
-
-> Pierwsza zmiana modelu wymaga pobrania jego pliku (jednorazowo).
-
----
-
-## 🛠️ Budowanie .exe (Windows)
-
-```bash
-BUILD_EXE.bat
-```
-
-Wymaga [Inno Setup 6](https://jrsoftware.org/isinfo.php) do stworzenia instalatora.
-
----
-
-## 📜 Licencja / License
-
-MIT License — bezpłatny, open source.  
-Możesz używać, modyfikować i dystrybuować bez ograniczeń.
-
----
-
-## 🤝 Twórca / Author
 
 <div align="center">
 
-**AI Evolution Polska**  
-Bezpłatne narzędzia AI dla polskich użytkowników
+**AI Evolution Polska** — Bezpłatne narzędzia AI dla polskich użytkowników
 
 [![GitHub](https://img.shields.io/badge/GitHub-aievolutionpl-181717?logo=github)](https://github.com/aievolutionpl)
 

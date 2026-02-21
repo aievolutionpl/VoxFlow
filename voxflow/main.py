@@ -12,8 +12,10 @@ def main():
 
     # Fix encoding for Windows consoles
     if sys.platform == "win32":
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        if sys.stdout is not None:
+            sys.stdout.reconfigure(encoding='utf-8')
+        if sys.stderr is not None:
+            sys.stderr.reconfigure(encoding='utf-8')
 
     # Handle --test mode
     if "--test" in sys.argv:

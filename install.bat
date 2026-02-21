@@ -105,13 +105,24 @@ if %errorlevel% neq 0 (
 echo.
 echo ═══════════════════════════════════════════════════════
 echo  ✅ VoxFlow zainstalowany pomyślnie!
+
+REM ─── Stwórz START_VOXFLOW.bat ──────────────────────────────
+echo @echo off > START_VOXFLOW.bat
+echo chcp 65001 ^>nul >> START_VOXFLOW.bat
+echo cd /d "%%~dp0" >> START_VOXFLOW.bat
+echo call venv\Scripts\activate.bat >> START_VOXFLOW.bat
+echo start "" venv\Scripts\pythonw.exe -m voxflow.main >> START_VOXFLOW.bat
+
+echo.
+echo ═══════════════════════════════════════════════════════
+echo  ✅ Instalacja zakończona!
 echo.
 echo  Uruchom aplikację:
-echo    • Uruchom START_VOXFLOW.bat
-echo    • lub: venv\Scripts\activate ^& python -m voxflow.main
+echo    👉 Kliknij dwukrotnie START_VOXFLOW.bat
 echo.
-echo  Skrót na pulpicie zostanie utworzony przy pierwszym
-echo  uruchomieniu START_VOXFLOW.bat
+echo  Lub ręcznie:
+echo    venv\Scripts\activate
+echo    python -m voxflow.main
 echo ═══════════════════════════════════════════════════════
 echo.
 
@@ -120,7 +131,7 @@ if /i "%LAUNCH%"=="n" goto :end
 
 echo.
 echo  🚀 Uruchamianie VoxFlow...
-start "" pythonw -m voxflow.main
+start "" venv\Scripts\pythonw.exe -m voxflow.main
 :end
 deactivate
 echo.
