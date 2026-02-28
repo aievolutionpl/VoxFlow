@@ -120,11 +120,26 @@ echo if errorlevel 1 start "" python -m voxflow.main
 echo [OK] Plik START_VOXFLOW.bat stworzony!
 
 echo.
+echo ------------------------------------------------------------
+echo  KROK 5: Tworzenie skrotu na pulpicie...
+echo ------------------------------------------------------------
+echo.
+
+venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'%~dp0'); from voxflow.create_shortcut import create_desktop_shortcut_for_bat; create_desktop_shortcut_for_bat('%~dp0'.rstrip(chr(92)))"
+if %errorlevel% neq 0 (
+    echo [UWAGA] Skrotu nie udalo sie utworzyc automatycznie.
+    echo         Mozesz recznie przeniesc START_VOXFLOW.bat na pulpit.
+) else (
+    echo [OK] Skrot VoxFlow pojawil sie na pulpicie!
+)
+
+echo.
 echo ============================================================
 echo   [OK] VoxFlow zainstalowany pomyslnie!
 echo.
 echo   Uruchom aplikacje:
-echo     --^> Kliknij dwukrotnie START_VOXFLOW.bat
+echo     --^> Kliknij skrot VoxFlow na Pulpicie
+echo     --^> lub dwukrotnie kliknij START_VOXFLOW.bat
 echo ============================================================
 echo.
 
