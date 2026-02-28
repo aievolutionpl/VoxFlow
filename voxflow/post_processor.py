@@ -1,10 +1,10 @@
 """VoxFlow Post-Processor — Auto-correction for transcribed text.
 
-Fixes common Whisper transcription errors, especially for Polish:
+Fixes common Whisper transcription errors for Polish, English, German, and more:
 - Removes repeated phrases (Whisper hallucination)
-- Fixes capitalization (first letter of sentences) 
+- Fixes capitalization (first letter of sentences)
 - Cleans up punctuation
-- Fixes common Polish word confusions
+- Fixes common word confusions per language
 - Removes filler words/sounds
 """
 import re
@@ -46,6 +46,25 @@ ENGLISH_CORRECTIONS = {
     r"\bgotta\b": "got to",
 }
 
+# German filler words/sounds
+GERMAN_FILLERS = {
+    "äh", "ähm", "hm", "öh", "öhm", "hmm", "ehm",
+}
+
+# Common German Whisper corrections
+GERMAN_CORRECTIONS = {
+    # Common split compounds
+    r"\bauch\s+wenn\b": "auch wenn",
+    r"\bzu\s+sammen\b": "zusammen",
+    r"\bdes\s+halb\b": "deshalb",
+    r"\bdem\s+nach\b": "demnach",
+    r"\bober\s+halb\b": "oberhalb",
+    r"\bunter\s+halb\b": "unterhalb",
+    # Whisper artifacts
+    r"\[.*?\]": "",
+    r"\(.*?\)": "",
+}
+
 
 def post_process(
     text: str,
@@ -83,8 +102,11 @@ def post_process(
         result = _fix_repetitions(result)
 
     # 3. Remove filler words
-    if remove_fillers and language in ("pl", "auto"):
-        result = _remove_fillers(result)
+    if remove_fillers:
+        if language in ("pl", "auto"):
+            result = _remove_fillers(result, POLISH_FILLERS)
+        if language == "de":
+            result = _remove_fillers(result, GERMAN_FILLERS)
 
     # 4. Apply language-specific corrections
     if apply_corrections:
@@ -92,6 +114,8 @@ def post_process(
             result = _apply_corrections(result, POLISH_CORRECTIONS)
         if language in ("en", "auto"):
             result = _apply_corrections(result, ENGLISH_CORRECTIONS)
+        if language == "de":
+            result = _apply_corrections(result, GERMAN_CORRECTIONS)
 
     # 5. Fix punctuation
     if fix_punctuation:
@@ -147,9 +171,9 @@ def _fix_repetitions(text: str) -> str:
     return result
 
 
-def _remove_fillers(text: str) -> str:
-    """Remove filler words/sounds."""
-    for filler in POLISH_FILLERS:
+def _remove_fillers(text: str, fillers: set) -> str:
+    """Remove filler words/sounds from a given set."""
+    for filler in fillers:
         # Remove filler as standalone word (with possible punctuation)
         pattern = r'\b' + re.escape(filler) + r'[,.]?\s*'
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
@@ -227,6 +251,12 @@ ENGLISH_INITIAL_PROMPT = (
     "The text uses proper grammar and punctuation."
 )
 
+GERMAN_INITIAL_PROMPT = (
+    "Transkription einer Aufnahme auf Deutsch. "
+    "Der Text enthält korrekte deutsche Umlaute: ä, ö, ü, Ä, Ö, Ü, ß. "
+    "Die Sätze sind grammatikalisch und orthografisch korrekt."
+)
+
 AUTO_INITIAL_PROMPT = (
     "Transkrypcja nagrania. Tekst może być po polsku lub angielsku. "
     "Polski tekst zawiera poprawne znaki diakrytyczne: ą, ć, ę, ł, ń, ó, ś, ź, ż."
@@ -235,7 +265,7 @@ AUTO_INITIAL_PROMPT = (
 
 def get_initial_prompt(language: str) -> str:
     """Get the initial prompt for Whisper based on language.
-    
+
     The initial_prompt biases Whisper towards producing correct output
     in the target language with proper diacritics and grammar.
     """
@@ -243,5 +273,7 @@ def get_initial_prompt(language: str) -> str:
         return POLISH_INITIAL_PROMPT
     elif language == "en":
         return ENGLISH_INITIAL_PROMPT
+    elif language == "de":
+        return GERMAN_INITIAL_PROMPT
     else:
         return AUTO_INITIAL_PROMPT

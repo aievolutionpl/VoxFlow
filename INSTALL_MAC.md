@@ -74,8 +74,10 @@ Skrypt automatycznie wykrywa architekturę. Na Apple Silicon:
 |---------|-------------|
 | `command not found: brew` | Zainstaluj [Homebrew](https://brew.sh) ręcznie |
 | `portaudio` błąd | `brew install portaudio` |
+| `tkinter` nie znaleziony | `brew install python-tk@3.11` |
 | Python za stary | `brew install python@3.11` |
-| Hotkey nie działa globalnie | Dodaj do Accessibility (powyżej) |
+| Hotkey nie działa globalnie | Dodaj do Accessibility (patrz sekcja poniżej) |
+| `pynput` błąd | `pip install pynput` (instalowany automatycznie) |
 | Błąd pobierania modelu | Sprawdź połączenie internetowe |
 
 ---
@@ -89,3 +91,14 @@ Skrypt automatycznie wykrywa architekturę. Na Apple Silicon:
 - 4 GB RAM (8 GB zalecane)
 - Mikrofon
 - Połączenie internetowe (pierwsze pobranie modelu ~500 MB)
+
+---
+
+## 🌐 Funkcja tłumaczenia (nowość)
+
+VoxFlow posiada wbudowane tłumaczenie głosowe **100% offline**:  
+Mów po polsku, niemiecku, francusku → tekst pojawia się po **angielsku**.
+
+Aktywacja: **⚙ Ustawienia → 🌐 Tłumacz głos → angielski** (toggle)
+
+> Działa bez internetu — Whisper tłumaczy lokalnie.

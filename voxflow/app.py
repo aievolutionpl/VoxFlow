@@ -479,7 +479,7 @@ class VoxFlowApp(ctk.CTk):
                      text_color=C["txt3"]).pack(anchor="w")
         self.lang_var = ctk.StringVar(value=self.config.language)
         ctk.CTkOptionMenu(
-            lf, values=["auto", "pl", "en"],
+            lf, values=["auto", "pl", "en", "de", "fr", "es", "it", "uk"],
             variable=self.lang_var,
             font=ctk.CTkFont(size=11),
             fg_color=C["bg_input"],
@@ -636,6 +636,28 @@ class VoxFlowApp(ctk.CTk):
 
         self.autostart_var = ctk.BooleanVar(value=is_autostart_enabled())
         sw_row(inner, "🚀 Uruchamiaj z Windows", self.autostart_var, self._on_autostart_toggle)
+
+        # ── Translation section ────────────────────────────────
+        ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(10, 8))
+
+        ctk.CTkLabel(
+            inner, text="🌐 Tłumaczenie (Whisper → EN)",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=C["txt2"],
+        ).pack(anchor="w", pady=(0, 4))
+
+        self.translate_var = ctk.BooleanVar(value=self.config.translate_enabled)
+        sw_row(inner, "🌐 Tłumacz głos → angielski", self.translate_var, self._on_translate_toggle)
+
+        ctk.CTkLabel(
+            inner,
+            text="  ℹ️ Mówisz po polsku, francusku lub innych językach\n"
+                 "     — transkrypcja pojawia się w języku angielskim.\n"
+                 "     Działa 100% offline (Whisper native).",
+            font=ctk.CTkFont(size=10),
+            text_color=C["txt3"],
+            justify="left",
+        ).pack(anchor="w", pady=(2, 0))
 
         # ── Color theme selector ───────────────────────
         ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(10, 8))
@@ -918,12 +940,14 @@ class VoxFlowApp(ctk.CTk):
 
     def _transcribe(self, audio: np.ndarray):
         try:
+            task = "translate" if self.config.translate_enabled else "transcribe"
             result = self.transcriber.transcribe(
                 audio,
                 language=self.lang_var.get(),
                 beam_size=self.config.beam_size,
                 vad_enabled=self.config.vad_enabled,
                 auto_correct=self.config.auto_correct,
+                task=task,
                 on_progress=lambda m: self.after(
                     0, lambda msg=m: self.status.configure(text=msg)
                 ),
@@ -959,13 +983,21 @@ class VoxFlowApp(ctk.CTk):
             ).start()
 
         lang = result.get("language", "?")
-        flag = "🇵🇱" if lang == "pl" else "🇬🇧" if lang == "en" else "🌍"
+        translated = result.get("translated", False)
+        _LANG_FLAGS = {
+            "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
+            "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
+            "uk": "🇺🇦",
+        }
+        flag = _LANG_FLAGS.get(lang, "🌍")
         dur = result.get("duration", 0)
         extras = []
         if self.config.auto_type_enabled:
             extras.append("✍️")
         if self.config.auto_copy_to_clipboard:
             extras.append("📋")
+        if translated:
+            extras.append("🌐→EN")
         extra_str = " • " + " ".join(extras) if extras else ""
         self.status.configure(
             text=f"✅ {flag} {lang.upper()} • {dur:.1f}s{extra_str}",
@@ -1016,7 +1048,12 @@ class VoxFlowApp(ctk.CTk):
             )
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
-            flag = "🇵🇱" if e["language"] == "pl" else "🇬🇧" if e["language"] == "en" else "🌍"
+            _LANG_FLAGS = {
+                "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
+                "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
+                "uk": "🇺🇦",
+            }
+            flag = _LANG_FLAGS.get(e["language"], "🌍")
             preview = e["text"][:44] + ("…" if len(e["text"]) > 44 else "")
             ctk.CTkLabel(
                 row,
@@ -1096,6 +1133,20 @@ class VoxFlowApp(ctk.CTk):
         self.config.save()
         msg = "🚀 Auto-start włączony" if enabled else "🔕 Auto-start wyłączony"
         self.status.configure(text=msg, text_color=C["ok"])
+
+    def _on_translate_toggle(self):
+        self.config.translate_enabled = self.translate_var.get()
+        self.config.save()
+        if self.config.translate_enabled:
+            self.status.configure(
+                text="🌐 Tłumaczenie włączone — głos → angielski",
+                text_color=C["accent2"],
+            )
+        else:
+            self.status.configure(
+                text="🌐 Tłumaczenie wyłączone",
+                text_color=C["txt2"],
+            )
 
     def _reload_model(self, sz):
         try:
