@@ -77,20 +77,22 @@ class VoxTranscriber:
         beam_size: int = 5,
         vad_enabled: bool = True,
         auto_correct: bool = True,
+        task: str = "transcribe",
         on_progress: Optional[callable] = None,
     ) -> dict:
         """Transcribe audio data to text with maximum quality.
         
         Args:
             audio_data: numpy array of audio samples (float32, 16kHz mono)
-            language: Language code ("pl", "en") or "auto" for detection
+            language: Language code ("pl", "en", "de", ...) or "auto" for detection
             beam_size: Beam search width (higher = more accurate, slower)
             vad_enabled: Use Voice Activity Detection filtering
             auto_correct: Apply post-processing auto-correction
+            task: "transcribe" (default) or "translate" (Whisper translates to English)
             on_progress: Callback for progress updates
             
         Returns:
-            dict with keys: text, raw_text, language, segments, duration
+            dict with keys: text, raw_text, language, segments, duration, translated
         """
         if not self._model_loaded or self._model is None:
             raise RuntimeError("Model nie jest załadowany. Wywołaj load_model() najpierw.")
@@ -122,6 +124,7 @@ class VoxTranscriber:
             "log_prob_threshold": -1.0,
             "no_speech_threshold": 0.6,
             "word_timestamps": False,
+            "task": task,  # "transcribe" or "translate" (-> EN)
         }
 
         if lang_code:
@@ -180,12 +183,19 @@ class VoxTranscriber:
                 "language_probability": info.language_probability,
                 "segments": segments,
                 "duration": info.duration,
+                "translated": task == "translate",
             }
 
             if on_progress:
-                flag = "🇵🇱" if info.language == "pl" else "🇬🇧" if info.language == "en" else "🌍"
+                _LANG_FLAGS = {
+                    "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
+                    "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
+                    "uk": "🇺🇦",
+                }
+                flag = _LANG_FLAGS.get(info.language, "🌍")
                 prob = info.language_probability * 100
-                on_progress(f"✅ {flag} {info.language.upper()} ({prob:.0f}%) • {info.duration:.1f}s")
+                tr_suffix = " →🇬🇧" if task == "translate" else ""
+                on_progress(f"✅ {flag} {info.language.upper()} ({prob:.0f}%){tr_suffix} • {info.duration:.1f}s")
 
             return result
 

@@ -79,8 +79,9 @@ Uruchom `START_VOXFLOW.bat` z folderu portable.
 
 | 🇵🇱 | 🇬🇧 |
 |-----|-----|
-| 🎤 Dyktowanie przytrzymując klawisz | Hold-to-record hotkey |
-| 🌍 Polski + Angielski (auto-detekcja) | Polish + English (auto-detect) |
+| � Dyktowanie przytrzymując klawisz | Hold-to-record hotkey |
+| 🌍 Polski + Angielski + Niemiecki + więcej (auto-detekcja) | Polish + English + German + more (auto-detect) |
+| 🌐 Tłumaczenie głos → Angielski (100% offline) | Voice → English translation (100% offline) |
 | ⚡ 100% lokalne — zero chmury | 100% local — no cloud |
 | 🧠 OpenAI Whisper (faster-whisper) | OpenAI Whisper (faster-whisper) |
 | ✍️ Auto-wpisywanie w aktywne okno | Auto-type into active window |
@@ -114,8 +115,9 @@ chmod +x install_mac.sh
 ./install_mac.sh
 ```
 
+> Skrypt automatycznie instaluje `portaudio`, `pynput` (globalny hotkey) i sprawdza Tkinter.  
 > Globalny hotkey wymaga uprawnień Accessibility w System Settings.  
-> Szczegóły: [INSTALL_MAC.md](INSTALL_MAC.md)
+> Szczegóły i rozwiązywanie problemów: [INSTALL\_MAC.md](INSTALL_MAC.md)
 
 ---
 

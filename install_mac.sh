@@ -64,12 +64,18 @@ echo "  KROK 2: Instalacja bibliotek audio (portaudio)..."
 echo "══════════════════════════════════════════════════════"
 echo ""
 
+# Detect Homebrew prefix for portaudio lib path
+BREW_PREFIX=$(brew --prefix 2>/dev/null || echo "/usr/local")
+
 if brew list portaudio &>/dev/null; then
     echo -e "${GREEN}  ✅ portaudio już zainstalowany${NC}"
 else
     brew install portaudio
     echo -e "${GREEN}  ✅ portaudio zainstalowany${NC}"
 fi
+
+# Export portaudio path so sounddevice can find the dylib
+export DYLD_LIBRARY_PATH="${BREW_PREFIX}/lib:${DYLD_LIBRARY_PATH:-}"
 
 # ─── Check Python 3.9+ ─────────────────────────────────────────
 echo ""
@@ -129,7 +135,17 @@ echo ""
 pip install --upgrade pip --quiet
 pip install -r requirements.txt --quiet
 
+# Install pynput as macOS hotkey fallback (keyboard lib needs root on macOS)
+pip install pynput --quiet 2>/dev/null || true
+
 echo -e "${GREEN}  ✅ Pakiety zainstalowane${NC}"
+
+# Ensure Tkinter is available — install python-tk via Homebrew if missing
+python -c "import tkinter" 2>/dev/null || {
+    echo -e "${YELLOW}  ℹ️  Tkinter nie znaleziony. Instaluję python-tk@3.11...${NC}"
+    brew install python-tk@3.11 2>/dev/null || brew install python-tk 2>/dev/null || true
+    echo -e "  ⚠️  Jeśli Tkinter nadal nie działa, uruchom: brew install python-tk@3.11"
+}
 
 # ─── Verify ─────────────────────────────────────────────────────
 echo ""
@@ -138,7 +154,15 @@ echo "  KROK 6: Weryfikacja instalacji..."
 echo "══════════════════════════════════════════════════════"
 echo ""
 
-python -m voxflow.main --test
+if python -m voxflow.main --test; then
+    echo -e "${GREEN}  ✅ Weryfikacja zakończona pomyślnie${NC}"
+else
+    echo -e "${YELLOW}  ⚠️  Weryfikacja z ostrzeżeniami — sprawdź błędy powyżej.${NC}"
+    echo "  Typowe problemy:"
+    echo "    • tkinter: brew install python-tk@3.11"
+    echo "    • portaudio: brew install portaudio"
+    echo "    • HotKey: dodaj Terminal do Accessibility w Ustawieniach"
+fi
 
 # ─── Create launcher ─────────────────────────────────────────────
 echo ""

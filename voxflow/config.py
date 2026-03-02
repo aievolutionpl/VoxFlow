@@ -18,7 +18,7 @@ def get_config_dir() -> Path:
 
 # Valid value ranges for security validation
 _VALID_MODELS = {"tiny", "base", "small", "medium", "large-v3"}
-_VALID_LANGUAGES = {"auto", "pl", "en"}
+_VALID_LANGUAGES = {"auto", "pl", "en", "de", "fr", "es", "it", "uk"}
 # Hotkey validation: allow any non-empty string (hotkey picker can produce
 # arbitrary key names). We only enforce it's a safe non-empty string.
 _VALID_TYPING_METHODS = {"clipboard", "keyboard"}
@@ -61,6 +61,8 @@ def _validate_config(data: dict) -> dict:
             validated[key] = default_val
         elif key == "language" and value not in _VALID_LANGUAGES:
             validated[key] = default_val
+        elif key == "translate_target" and value not in _VALID_LANGUAGES:
+            validated[key] = default_val
         elif key == "hotkey":
             # Accept any non-empty string — hotkey picker sets arbitrary keys
             s = str(value).strip().lower()
@@ -98,7 +100,7 @@ class VoxFlowConfig:
     """Application configuration."""
     # Model settings
     model_size: str = "small"
-    language: str = "auto"  # "auto", "pl", "en"
+    language: str = "auto"  # "auto", "pl", "en", "de", "fr", "es", "it", "uk"
     device: str = "cpu"  # "cpu" or "cuda"
     compute_type: str = "int8"  # "int8" for CPU, "float16" for GPU
 
@@ -136,6 +138,10 @@ class VoxFlowConfig:
     vad_silence_ms: int = 300
     auto_correct: bool = True
 
+    # Translation (Whisper built-in translate task → English)
+    translate_enabled: bool = False
+    translate_target: str = "en"  # Currently only "en" supported (Whisper limitation)
+
     def save(self):
         """Save configuration to JSON file."""
         config_path = get_config_dir() / "config.json"
@@ -170,6 +176,11 @@ class VoxFlowConfig:
             "auto": "🌍 Auto-detect",
             "pl": "🇵🇱 Polski",
             "en": "🇬🇧 English",
+            "de": "🇩🇪 Deutsch",
+            "fr": "🇫🇷 Français",
+            "es": "🇪🇸 Español",
+            "it": "🇮🇹 Italiano",
+            "uk": "🇺🇦 Українська",
         }
 
     @property
