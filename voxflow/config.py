@@ -18,7 +18,7 @@ def get_config_dir() -> Path:
 
 # Valid value ranges for security validation
 _VALID_MODELS = {"tiny", "base", "small", "medium", "large-v3"}
-_VALID_LANGUAGES = {"auto", "pl", "en", "de", "fr", "es", "it", "uk"}
+_VALID_LANGUAGES = {"auto", "pl", "en", "de", "fr", "es", "it", "uk", "zh-yue"}
 # Hotkey validation: allow any non-empty string (hotkey picker can produce
 # arbitrary key names). We only enforce it's a safe non-empty string.
 _VALID_TYPING_METHODS = {"clipboard", "keyboard"}
@@ -100,7 +100,7 @@ class VoxFlowConfig:
     """Application configuration."""
     # Model settings
     model_size: str = "small"
-    language: str = "auto"  # "auto", "pl", "en", "de", "fr", "es", "it", "uk"
+    language: str = "auto"  # "auto", "pl", "en", "de", "fr", "es", "it", "uk", "zh-yue"
     device: str = "cpu"  # "cpu" or "cuda"
     compute_type: str = "int8"  # "int8" for CPU, "float16" for GPU
 
@@ -181,6 +181,7 @@ class VoxFlowConfig:
             "es": "🇪🇸 Español",
             "it": "🇮🇹 Italiano",
             "uk": "🇺🇦 Українська",
+            "zh-yue": "🇭🇰 粵語 (Cantonese)",
         }
 
     @property
