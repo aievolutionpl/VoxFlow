@@ -51,6 +51,11 @@ GERMAN_FILLERS = {
     "äh", "ähm", "hm", "öh", "öhm", "hmm", "ehm",
 }
 
+# Common Cantonese filler words/sounds that Whisper sometimes outputs
+CANTONESE_FILLERS = {
+    "嗯", "啊", "呀", "吖", "喎", "嘅", "喇", "咧", "咯",
+}
+
 # Common German Whisper corrections
 GERMAN_CORRECTIONS = {
     # Common split compounds
@@ -107,6 +112,8 @@ def post_process(
             result = _remove_fillers(result, POLISH_FILLERS)
         if language == "de":
             result = _remove_fillers(result, GERMAN_FILLERS)
+        if language == "zh-yue":
+            result = _remove_fillers(result, CANTONESE_FILLERS)
 
     # 4. Apply language-specific corrections
     if apply_corrections:
@@ -262,6 +269,13 @@ AUTO_INITIAL_PROMPT = (
     "Polski tekst zawiera poprawne znaki diakrytyczne: ą, ć, ę, ł, ń, ó, ś, ź, ż."
 )
 
+CANTONESE_INITIAL_PROMPT = (
+    "Transcription of a recording in Cantonese (粵語). "
+    "The text is in traditional Cantonese Chinese. "
+    "Use traditional Chinese characters (繁體中文). "
+    "Common Cantonese words: 係, 唔, 幾, 咁, 喎, 呀, 吖, 喎, 嘅, 喇, 咧, 咯, 噶."
+)
+
 
 def get_initial_prompt(language: str) -> str:
     """Get the initial prompt for Whisper based on language.
@@ -275,5 +289,7 @@ def get_initial_prompt(language: str) -> str:
         return ENGLISH_INITIAL_PROMPT
     elif language == "de":
         return GERMAN_INITIAL_PROMPT
+    elif language == "zh-yue":
+        return CANTONESE_INITIAL_PROMPT
     else:
         return AUTO_INITIAL_PROMPT

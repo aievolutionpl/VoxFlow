@@ -190,7 +190,7 @@ class VoxTranscriber:
                 _LANG_FLAGS = {
                     "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
                     "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-                    "uk": "🇺🇦",
+                    "uk": "🇺🇦", "zh-yue": "🇭🇰",
                 }
                 flag = _LANG_FLAGS.get(info.language, "🌍")
                 prob = info.language_probability * 100

@@ -479,7 +479,7 @@ class VoxFlowApp(ctk.CTk):
                      text_color=C["txt3"]).pack(anchor="w")
         self.lang_var = ctk.StringVar(value=self.config.language)
         ctk.CTkOptionMenu(
-            lf, values=["auto", "pl", "en", "de", "fr", "es", "it", "uk"],
+            lf, values=["auto", "pl", "en", "de", "fr", "es", "it", "uk", "zh-yue"],
             variable=self.lang_var,
             font=ctk.CTkFont(size=11),
             fg_color=C["bg_input"],
@@ -987,7 +987,7 @@ class VoxFlowApp(ctk.CTk):
         _LANG_FLAGS = {
             "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
             "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-            "uk": "🇺🇦",
+            "uk": "🇺🇦", "zh-yue": "🇭🇰",
         }
         flag = _LANG_FLAGS.get(lang, "🌍")
         dur = result.get("duration", 0)
@@ -1051,7 +1051,7 @@ class VoxFlowApp(ctk.CTk):
             _LANG_FLAGS = {
                 "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
                 "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-                "uk": "🇺🇦",
+                "uk": "🇺🇦", "zh-yue": "🇭🇰",
             }
             flag = _LANG_FLAGS.get(e["language"], "🌍")
             preview = e["text"][:44] + ("…" if len(e["text"]) > 44 else "")
