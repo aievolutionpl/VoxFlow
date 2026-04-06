@@ -84,6 +84,7 @@ class VoxFlowApp(ctk.CTk):
         self._alive = True
         self._settings_visible = False
         self._capturing_hotkey = False
+        self._hotkey_capture_secs = 0
         self._audio_devices: list[dict] = []
 
         # ─── Engine ───────────────────────────────────────────────
@@ -678,11 +679,27 @@ class VoxFlowApp(ctk.CTk):
         ]
 
         def _apply_theme(accent, bg):
+            # Derive dim/glow variants from the chosen accent
             C["accent"] = accent
             C["accent2"] = accent
+            C["accent3"] = accent
             C["accent_dim"] = accent
+            C["accent_glow"] = accent
             C["bg"] = bg
+            C["bg_card"] = bg[:-2] + "2b" if len(bg) == 7 else bg  # slightly lighter
+            # Update main window background
             self.configure(fg_color=bg)
+            # Update key widgets that cache their colors at build time
+            self.settings_btn.configure(
+                hover_color=accent,
+            )
+            self.level_bar.configure(
+                progress_color=accent,
+            )
+            self.hotkey_btn.configure(
+                hover_color=accent,
+            )
+            # Canvas redraws automatically via _animate() every 50ms using C[]
             self.config.save()
 
         for label, accent, bg in THEMES:
@@ -756,7 +773,7 @@ class VoxFlowApp(ctk.CTk):
         target = self._level if self._recording else 0
         cur = self.level_bar.get()
         if self._recording:
-            self.level_bar.set(min(1.0, cur + (target - cur) * 0.3) * 5)
+            self.level_bar.set(min(1.0, (cur + (target - cur) * 0.3) * 5))
         else:
             self.level_bar.set(max(0.0, cur * 0.8))
         self.level_bar.configure(
@@ -774,13 +791,26 @@ class VoxFlowApp(ctk.CTk):
         if self._capturing_hotkey or self._recording:
             return
         self._capturing_hotkey = True
+        self._hotkey_capture_secs = 10
         self.hotkey_btn.configure(
-            text="⌨️ Naciśnij klawisz...",
+            text=f"⌨️ Naciśnij klawisz... {self._hotkey_capture_secs}s",
             fg_color=C["accent_dim"],
             border_color=C["accent"],
         )
         self.hotkey_manager.stop()
+        self._hotkey_countdown()
         threading.Thread(target=self._capture_hotkey_thread, daemon=True).start()
+
+    def _hotkey_countdown(self):
+        """Update the hotkey button with remaining seconds each tick."""
+        if not self._capturing_hotkey:
+            return
+        self._hotkey_capture_secs -= 1
+        if self._hotkey_capture_secs > 0:
+            self.hotkey_btn.configure(
+                text=f"⌨️ Naciśnij klawisz... {self._hotkey_capture_secs}s"
+            )
+            self.after(1000, self._hotkey_countdown)
 
     def _capture_hotkey_thread(self):
         """Wait for key press in background thread."""
@@ -964,6 +994,7 @@ class VoxFlowApp(ctk.CTk):
             return
 
         # Update transcript box (always editable — user can fix before copying)
+        self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
 
@@ -1010,11 +1041,17 @@ class VoxFlowApp(ctk.CTk):
 
     def _delayed_auto_type(self, text: str):
         time.sleep(0.15)
-        self.auto_typer.type_text(text, method=self.config.typing_method)
+        try:
+            self.auto_typer.type_text(text, method=self.config.typing_method)
+        except Exception:
+            self.after(0, lambda: self.status.configure(
+                text="⚠️ Auto-wpisywanie nieudane — sprawdź fokus okna",
+                text_color=C["warn"],
+            ))
 
     def _on_error(self, err: str):
         self._processing = False
-        self.status.configure(text=f"❌ {err[:70]}", text_color=C["rec_red"])
+        self.status.configure(text=f"❌ {err[:120]}", text_color=C["rec_red"])
         if self.config.play_sounds:
             sounds.play("error")
 
@@ -1041,28 +1078,33 @@ class VoxFlowApp(ctk.CTk):
                 font=ctk.CTkFont(size=11), text_color=C["txt3"],
             ).pack(pady=4)
             return
-        for e in self._history[:6]:
+        _LANG_FLAGS = {
+            "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
+            "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
+            "uk": "🇺🇦",
+        }
+        for e in self._history[:10]:
             row = ctk.CTkFrame(
                 self.hist_frame, fg_color=C["bg_hover"],
                 corner_radius=8, height=32,
             )
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
-            _LANG_FLAGS = {
-                "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
-                "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-                "uk": "🇺🇦",
-            }
             flag = _LANG_FLAGS.get(e["language"], "🌍")
-            preview = e["text"][:44] + ("…" if len(e["text"]) > 44 else "")
-            ctk.CTkLabel(
+            dur_s = f"{e.get('duration', 0):.0f}s"
+            preview = e["text"][:38] + ("…" if len(e["text"]) > 38 else "")
+            t = e["text"]
+            # Clicking the label loads text into the transcript box
+            lbl = ctk.CTkLabel(
                 row,
-                text=f"{flag} {e['time']} • {preview}",
+                text=f"{flag} {e['time']} {dur_s} • {preview}",
                 font=ctk.CTkFont(family="Segoe UI", size=10),
                 text_color=C["txt2"],
                 anchor="w",
-            ).pack(side="left", padx=8, fill="x", expand=True)
-            t = e["text"]
+                cursor="hand2",
+            )
+            lbl.pack(side="left", padx=8, fill="x", expand=True)
+            lbl.bind("<Button-1>", lambda _ev, txt=t: self._load_history_text(txt))
             ctk.CTkButton(
                 row, text="📋", width=26, height=22,
                 font=ctk.CTkFont(size=10),
@@ -1074,6 +1116,13 @@ class VoxFlowApp(ctk.CTk):
     def _clear_history(self):
         self._history = []
         self._refresh_history()
+
+    def _load_history_text(self, text: str):
+        """Load a history entry into the transcript textbox."""
+        self.textbox.configure(state="normal")
+        self.textbox.delete("1.0", "end")
+        self.textbox.insert("1.0", text)
+        self.status.configure(text="📂 Wczytano z historii", text_color=C["txt2"])
 
     # ═══════════════════════════════════════════════════════════════
     # SETTINGS CALLBACKS
@@ -1179,7 +1228,7 @@ class VoxFlowApp(ctk.CTk):
 
     def _on_level(self, lv):
         self._level = lv
-        self.overlay.set_level(lv)
+        self.after(0, lambda: self.overlay.set_level(lv))
 
     # ═══════════════════════════════════════════════════════════════
     # SERVICES
@@ -1238,6 +1287,7 @@ class VoxFlowApp(ctk.CTk):
         if self._recording:
             self.recorder.stop()
         self.hotkey_manager.stop()
-        self.tray.stop()
+        if self.tray:
+            self.tray.stop()
         self.config.save()
         self.destroy()
