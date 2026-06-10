@@ -241,7 +241,7 @@ def _final_cleanup(text: str) -> str:
 
 POLISH_INITIAL_PROMPT = (
     "Transkrypcja nagrania w języku polskim. "
-    "Tekst zawiera poprawną polskę z użyciem znaków diakrytycznych: "
+    "Tekst zawiera poprawną polszczyznę z użyciem znaków diakrytycznych: "
     "ą, ć, ę, ł, ń, ó, ś, ź, ż. "
     "Zdania są poprawne gramatycznie i ortograficznie."
 )

@@ -98,7 +98,11 @@ class VoxTranscriber:
             raise RuntimeError("Model nie jest załadowany. Wywołaj load_model() najpierw.")
 
         if audio_data is None or len(audio_data) == 0:
-            return {"text": "", "raw_text": "", "language": "", "segments": [], "duration": 0.0}
+            return {
+                "text": "", "raw_text": "", "language": "",
+                "language_probability": 0.0, "segments": [],
+                "duration": 0.0, "translated": False,
+            }
 
         # ─── Prepare audio ────────────────────────────────────────
         audio_data = self._prepare_audio(audio_data)
@@ -215,6 +219,12 @@ class VoxTranscriber:
         if audio_data.ndim > 1:
             audio_data = audio_data[:, 0]
 
+        # ─── Remove DC offset ────────────────────────────────────
+        # Some microphones have a DC bias that hurts recognition.
+        # Must happen before normalization, otherwise the bias inflates
+        # the measured peak and the gain calculation is wrong.
+        audio_data = audio_data - np.mean(audio_data)
+
         # ─── Normalize audio volume ───────────────────────────────
         # This is critical for consistent transcription quality.
         # Whisper expects audio roughly in [-1, 1] range with good SNR.
@@ -223,12 +233,8 @@ class VoxTranscriber:
             # Normalize to ~90% of max range
             audio_data = audio_data * (0.9 / max_val)
         elif max_val > 1.0:
-            # Clip and normalize if clipping
+            # Clip if out of range
             audio_data = np.clip(audio_data, -1.0, 1.0)
-
-        # ─── Remove DC offset ────────────────────────────────────
-        # Some microphones have a DC bias that hurts recognition
-        audio_data = audio_data - np.mean(audio_data)
 
         return audio_data
 

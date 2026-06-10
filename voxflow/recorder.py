@@ -91,8 +91,13 @@ class AudioRecorder:
                 raise
 
     def stop(self) -> Optional[np.ndarray]:
-        """Stop recording and return the audio data as a numpy array."""
-        if not self._recording:
+        """Stop recording and return the audio data as a numpy array.
+
+        Note: after hitting max_duration the callback flips _recording to
+        False on its own, but the stream stays open and the captured audio
+        must still be returned — so we key off the stream, not the flag.
+        """
+        if not self._recording and self._stream is None:
             return None
 
         self._recording = False

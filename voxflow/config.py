@@ -41,18 +41,19 @@ def _validate_config(data: dict) -> dict:
         field_obj = VoxFlowConfig.__dataclass_fields__[key]
         default_val = getattr(defaults, key)
         
-        # Type validation
+        # Type validation — field.type may be the type object or its name
+        # (string annotation), so handle both forms.
         expected_type = field_obj.type
-        if expected_type == "str" and not isinstance(value, str):
+        if expected_type in (str, "str") and not isinstance(value, str):
             validated[key] = default_val
             continue
-        elif expected_type == "int" and not isinstance(value, (int, float)):
+        elif expected_type in (bool, "bool") and not isinstance(value, bool):
             validated[key] = default_val
             continue
-        elif expected_type == "float" and not isinstance(value, (int, float)):
+        elif expected_type in (int, "int") and (isinstance(value, bool) or not isinstance(value, (int, float))):
             validated[key] = default_val
             continue
-        elif expected_type == "bool" and not isinstance(value, bool):
+        elif expected_type in (float, "float") and (isinstance(value, bool) or not isinstance(value, (int, float))):
             validated[key] = default_val
             continue
         
@@ -82,9 +83,10 @@ def _validate_config(data: dict) -> dict:
         elif key == "silence_duration":
             validated[key] = max(0.1, min(30.0, float(value)))
         elif key == "window_width":
-            validated[key] = max(400, min(1920, int(value)))
+            # Keep in sync with the app's minsize (460x700)
+            validated[key] = max(460, min(1920, int(value)))
         elif key == "window_height":
-            validated[key] = max(500, min(1080, int(value)))
+            validated[key] = max(700, min(1080, int(value)))
         elif key == "vad_silence_ms":
             validated[key] = max(50, min(5000, int(value)))
         elif key == "audio_device_index":

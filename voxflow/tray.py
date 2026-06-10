@@ -78,6 +78,11 @@ class TrayManager:
         except Exception as e:
             print(f"System tray failed: {e}")
 
+    @property
+    def is_running(self) -> bool:
+        """True when the tray icon was created successfully."""
+        return self._tray is not None
+
     def stop(self):
         """Stop the system tray icon."""
         if self._tray:

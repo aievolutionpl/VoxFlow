@@ -122,6 +122,9 @@ class HotkeyManager:
         t = threading.Thread(target=_read, daemon=True)
         t.start()
         done.wait(timeout=timeout)
+        # Signal the reader thread to exit on timeout too — otherwise it
+        # would keep consuming keyboard events forever.
+        done.set()
         return result[0]
 
     def _on_key_event(self, event):

@@ -3,6 +3,7 @@
 Built by AI Evolution Polska
 https://github.com/aievolutionpl/VoxFlow
 """
+import sys
 import threading
 import time
 import math
@@ -115,7 +116,9 @@ class VoxFlowApp(ctk.CTk):
             self.tray = TrayManager(
                 on_show=self._show,
                 on_toggle_recording=lambda: self.after(0, self._toggle_recording),
-                on_quit=self._quit,
+                # pystray calls this from its own thread — Tk teardown must
+                # happen on the main thread.
+                on_quit=lambda: self.after(0, self._quit),
             )
         else:
             self.tray = None
@@ -272,7 +275,6 @@ class VoxFlowApp(ctk.CTk):
             for i in range(3):
                 p = self._phase + i * 0.9
                 er = r + 12 + i * 12 + ((math.sin(p) + 1) / 2) * 8
-                alpha_hex = ["40", "28", "18"][i]
                 self.canvas.create_oval(
                     cx - er, cy - er, cx + er, cy + er,
                     fill="", outline=C["rec_red"], width=max(1, 3 - i)
@@ -516,7 +518,7 @@ class VoxFlowApp(ctk.CTk):
                      text_color=C["txt3"]).pack(anchor="w")
         self.hotkey_btn = ctk.CTkButton(
             hf,
-            text=self.config.hotkey.upper().replace("+", "+"),
+            text=self.config.hotkey.upper().replace("+", " + "),
             height=32,
             font=ctk.CTkFont(size=11, weight="bold"),
             fg_color=C["bg_input"],
@@ -635,8 +637,9 @@ class VoxFlowApp(ctk.CTk):
         self.sounds_var = ctk.BooleanVar(value=self.config.play_sounds)
         sw_row(inner, "🔊 Dźwięki nagrywania", self.sounds_var, self._on_sounds_toggle)
 
-        self.autostart_var = ctk.BooleanVar(value=is_autostart_enabled())
-        sw_row(inner, "🚀 Uruchamiaj z Windows", self.autostart_var, self._on_autostart_toggle)
+        if sys.platform == "win32" and _AUTOSTART_AVAILABLE:
+            self.autostart_var = ctk.BooleanVar(value=is_autostart_enabled())
+            sw_row(inner, "🚀 Uruchamiaj z Windows", self.autostart_var, self._on_autostart_toggle)
 
         # ── Translation section ────────────────────────────────
         ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(10, 8))
@@ -678,15 +681,22 @@ class VoxFlowApp(ctk.CTk):
             ("Zielony",   "#059669", "#08130f"),
         ]
 
+        def _blend(hex_color, target, factor):
+            """Blend hex_color towards target (another hex) by factor 0–1."""
+            c = [int(hex_color[i:i + 2], 16) for i in (1, 3, 5)]
+            t = [int(target[i:i + 2], 16) for i in (1, 3, 5)]
+            mixed = [round(a + (b - a) * factor) for a, b in zip(c, t)]
+            return "#" + "".join(f"{v:02x}" for v in mixed)
+
         def _apply_theme(accent, bg):
-            # Derive dim/glow variants from the chosen accent
+            # Derive lighter/darker variants so the UI keeps its depth
             C["accent"] = accent
-            C["accent2"] = accent
-            C["accent3"] = accent
-            C["accent_dim"] = accent
-            C["accent_glow"] = accent
+            C["accent2"] = _blend(accent, "#ffffff", 0.35)
+            C["accent3"] = _blend(accent, "#ffffff", 0.60)
+            C["accent_dim"] = _blend(accent, "#000000", 0.30)
+            C["accent_glow"] = _blend(accent, "#000000", 0.45)
             C["bg"] = bg
-            C["bg_card"] = bg[:-2] + "2b" if len(bg) == 7 else bg  # slightly lighter
+            C["bg_card"] = _blend(bg, "#ffffff", 0.06)
             # Update main window background
             self.configure(fg_color=bg)
             # Update key widgets that cache their colors at build time
@@ -770,10 +780,12 @@ class VoxFlowApp(ctk.CTk):
         self._phase += 0.10
         self._draw_btn()
 
-        target = self._level if self._recording else 0
+        # Boost the raw RMS level once (speech RMS is typically ~0.05–0.2),
+        # then ease the bar towards it for a smooth meter.
+        target = min(1.0, self._level * 6) if self._recording else 0.0
         cur = self.level_bar.get()
         if self._recording:
-            self.level_bar.set(min(1.0, (cur + (target - cur) * 0.3) * 5))
+            self.level_bar.set(cur + (target - cur) * 0.35)
         else:
             self.level_bar.set(max(0.0, cur * 0.8))
         self.level_bar.configure(
@@ -793,12 +805,12 @@ class VoxFlowApp(ctk.CTk):
         self._capturing_hotkey = True
         self._hotkey_capture_secs = 10
         self.hotkey_btn.configure(
-            text=f"⌨️ Naciśnij klawisz... {self._hotkey_capture_secs}s",
+            text=f"⌨️ Naciśnij klawisz (Esc anuluje)... {self._hotkey_capture_secs}s",
             fg_color=C["accent_dim"],
             border_color=C["accent"],
         )
         self.hotkey_manager.stop()
-        self._hotkey_countdown()
+        self.after(1000, self._hotkey_countdown)
         threading.Thread(target=self._capture_hotkey_thread, daemon=True).start()
 
     def _hotkey_countdown(self):
@@ -808,7 +820,7 @@ class VoxFlowApp(ctk.CTk):
         self._hotkey_capture_secs -= 1
         if self._hotkey_capture_secs > 0:
             self.hotkey_btn.configure(
-                text=f"⌨️ Naciśnij klawisz... {self._hotkey_capture_secs}s"
+                text=f"⌨️ Naciśnij klawisz (Esc anuluje)... {self._hotkey_capture_secs}s"
             )
             self.after(1000, self._hotkey_countdown)
 
@@ -898,6 +910,10 @@ class VoxFlowApp(ctk.CTk):
         Debounced: cancels any pending save and schedules a new one
         400 ms after the last resize event.
         """
+        # <Configure> bound on a toplevel also fires for child widgets —
+        # react only to the window itself.
+        if event is not None and event.widget is not self:
+            return
         if hasattr(self, "_resize_job") and self._resize_job:
             try:
                 self.after_cancel(self._resize_job)
@@ -939,6 +955,15 @@ class VoxFlowApp(ctk.CTk):
     def _start_rec(self):
         if self._recording or self._processing or self._capturing_hotkey:
             return
+        try:
+            self.recorder.start()
+        except Exception as e:
+            self.status.configure(
+                text=f"❌ Błąd mikrofonu: {str(e)[:80]}", text_color=C["rec_red"]
+            )
+            if self.config.play_sounds:
+                sounds.play("error")
+            return
         self._recording = True
         self.status.configure(text="🔴 Nagrywam... Mów teraz!", text_color=C["rec_red"])
         if self.tray:
@@ -946,7 +971,6 @@ class VoxFlowApp(ctk.CTk):
         if self.config.play_sounds:
             sounds.play("start")
         self.overlay.show(self)
-        self.recorder.start()
 
     def _stop_rec(self):
         if not self._recording:
@@ -1110,8 +1134,16 @@ class VoxFlowApp(ctk.CTk):
                 font=ctk.CTkFont(size=10),
                 fg_color="transparent", hover_color=C["accent"],
                 corner_radius=6,
-                command=lambda txt=t: pyperclip.copy(txt),
+                command=lambda txt=t: self._copy_history_text(txt),
             ).pack(side="right", padx=4)
+
+    def _copy_history_text(self, text: str):
+        """Copy a history entry to clipboard with status feedback."""
+        try:
+            pyperclip.copy(text)
+            self.status.configure(text="📋 Skopiowano z historii!", text_color=C["ok"])
+        except Exception:
+            self.status.configure(text="⚠️ Nie udało się skopiować", text_color=C["warn"])
 
     def _clear_history(self):
         self._history = []
@@ -1221,10 +1253,11 @@ class VoxFlowApp(ctk.CTk):
             self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
 
     def _clear_transcript(self):
+        # Keep the textbox editable — consistent with the "always editable"
+        # behavior after transcription.
         self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", "Twój tekst pojawi się tutaj...")
-        self.textbox.configure(state="disabled")
 
     def _on_level(self, lv):
         self._level = lv
@@ -1277,7 +1310,9 @@ class VoxFlowApp(ctk.CTk):
         self.after(0, lambda: (self.deiconify(), self.lift(), self.focus_force()))
 
     def _on_close(self):
-        if self.config.minimize_to_tray:
+        # Hide to tray only when a tray icon actually exists — otherwise
+        # the window would vanish with no way to bring it back.
+        if self.config.minimize_to_tray and self.tray and self.tray.is_running:
             self.withdraw()
         else:
             self._quit()
