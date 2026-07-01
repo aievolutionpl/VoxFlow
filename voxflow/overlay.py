@@ -139,7 +139,7 @@ class RecordingOverlay:
                       font=("Segoe UI", 9, "bold"),
                       anchor="w")
         c.create_text(42, cy + 8,
-                      text="zwolnij klawisz aby zakonczyc",
+                      text="zwolnij klawisz aby zakończyć",
                       fill="#6b5e9b",
                       font=("Segoe UI", 7),
                       anchor="w")

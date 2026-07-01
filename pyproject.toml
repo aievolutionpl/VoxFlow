@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voxflow"
-version = "1.0.0"
+version = "1.2.0"
 description = "VoxFlow — Lokalne rozpoznawanie mowy (Speech-to-Text) dla Windows. 100% offline, wspiera polski i angielski."
 readme = "README.md"
 license = {text = "MIT"}

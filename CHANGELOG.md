@@ -7,6 +7,44 @@ wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 
 ---
 
+## [1.2.0] — 2026-07-01
+
+### ✨ Dodane
+- 🎨 Trwały motyw kolorów — wybór (Fioletowy/Niebieski/Zielony) jest zapisywany
+  i przywracany przy starcie, cały interfejs używa spójnej palety
+- 🔄 Przycisk odświeżania listy mikrofonów — wykrywa urządzenia podłączone
+  po uruchomieniu aplikacji (restart PortAudio)
+- 🔢 Licznik słów i znaków nad polem transkrypcji (aktualizowany też
+  podczas ręcznej edycji)
+- 🌍 Flagi języków w szybkim wyborze języka (🇵🇱 pl, 🇬🇧 en, ...)
+- ⏱️ Automatyczne zakończenie nagrania po osiągnięciu limitu czasu —
+  wcześniej UI wisiał w stanie „Nagrywam" do zwolnienia klawisza
+
+### 🐛 Naprawiono
+- **[Krytyczny]** `install.bat` / `CREATE_PORTABLE.bat`: tworzenie skrótu na
+  pulpicie zawsze kończyło się błędem składni Pythona — backslashe w ścieżce
+  (np. `C:\Users\...`) psuły literal (`'\U'`); ścieżka przekazywana jest teraz
+  przez zmienną środowiskową
+- **[Ważny]** Wersja portable: launcher używał `activate.bat` z zapisaną na
+  sztywno starą ścieżką venv — po przeniesieniu folderu uruchamiał złe
+  środowisko; teraz woła bezpośrednio `venv\Scripts\pythonw.exe`
+- **[Ważny]** macOS: auto-wklejanie używało Ctrl+V zamiast Cmd+V
+- Transkrypcja czytała zmienną Tk z wątku roboczego (niebezpieczne wątkowo) —
+  język jest teraz brany z konfiguracji
+- Nagrywanie przy niezaładowanym modelu kończyło się błędem — teraz czytelny
+  komunikat „Model AI jeszcze się ładuje"
+- Ujednolicono wersję projektu (pyproject 1.0.0 / installer 1.1.0 /
+  portable 1.2.0 → wszędzie 1.2.0)
+- Polskie znaki w nakładce nagrywania („zakończyć")
+- Uszkodzony znak w tabeli funkcji w README
+
+### 🔧 Poprawki jakości
+- `install.bat`: weryfikacja instalacji jawnie przez `venv\Scripts\python.exe`
+- `START_VOXFLOW.bat` odporny na brak Pythona w PATH (używa venv bezpośrednio)
+- Usunięto zduplikowane słowniki flag językowych w kodzie
+
+---
+
 ## [1.1.0] — 2026-02-20
 
 ### ✨ Dodane

@@ -4,6 +4,7 @@ Built by AI Evolution Polska
 """
 import json
 import os
+import re
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
 
@@ -23,6 +24,7 @@ _VALID_LANGUAGES = {"auto", "pl", "en", "de", "fr", "es", "it", "uk"}
 # arbitrary key names). We only enforce it's a safe non-empty string.
 _VALID_TYPING_METHODS = {"clipboard", "keyboard"}
 _VALID_THEMES = {"dark", "light"}
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def _validate_config(data: dict) -> dict:
@@ -72,6 +74,8 @@ def _validate_config(data: dict) -> dict:
             validated[key] = default_val
         elif key == "theme" and value not in _VALID_THEMES:
             validated[key] = default_val
+        elif key in ("theme_accent", "theme_bg"):
+            validated[key] = value if _HEX_COLOR_RE.match(str(value)) else default_val
         elif key == "beam_size":
             validated[key] = max(1, min(20, int(value)))
         elif key == "sample_rate" and (not isinstance(value, int) or value <= 0):
@@ -131,6 +135,8 @@ class VoxFlowConfig:
     show_notifications: bool = True
     play_sounds: bool = True
     theme: str = "dark"
+    theme_accent: str = "#7c3aed"  # UI accent color (persisted theme choice)
+    theme_bg: str = "#09091a"      # UI background color
     window_width: int = 500
     window_height: int = 780
 

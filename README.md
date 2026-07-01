@@ -68,7 +68,7 @@ Wymaga [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 Opcja B — Portable (nie wymaga instalacji):
 
 ```
-CREATE_PORTABLE.bat  →  tworzy dist\VoxFlow_Portable_v1.1.0\
+CREATE_PORTABLE.bat  →  tworzy portable\VoxFlow_Portable_v1.2.0\
 ```
 
 Uruchom `START_VOXFLOW.bat` z folderu portable.
@@ -79,7 +79,7 @@ Uruchom `START_VOXFLOW.bat` z folderu portable.
 
 | 🇵🇱 | 🇬🇧 |
 |-----|-----|
-| � Dyktowanie przytrzymując klawisz | Hold-to-record hotkey |
+| 🎤 Dyktowanie przytrzymując klawisz | Hold-to-record hotkey |
 | 🌍 Polski + Angielski + Niemiecki + więcej (auto-detekcja) | Polish + English + German + more (auto-detect) |
 | 🌐 Tłumaczenie głos → Angielski (100% offline) | Voice → English translation (100% offline) |
 | ⚡ 100% lokalne — zero chmury | 100% local — no cloud |

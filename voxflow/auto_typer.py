@@ -2,6 +2,7 @@
 
 Built by AI Evolution Polska
 """
+import sys
 import time
 from typing import Optional
 
@@ -59,8 +60,9 @@ class AutoTyper:
         # Small delay to ensure clipboard is ready
         time.sleep(0.05)
 
-        # Simulate Ctrl+V paste
-        keyboard.press_and_release("ctrl+v")
+        # Simulate paste — macOS uses Cmd+V, everything else Ctrl+V
+        paste_combo = "command+v" if sys.platform == "darwin" else "ctrl+v"
+        keyboard.press_and_release(paste_combo)
 
         # Optional: restore old clipboard after a delay
         # (disabled by default to keep pasted text accessible)

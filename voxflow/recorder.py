@@ -18,6 +18,7 @@ class AudioRecorder:
         device_index: int = -1,
         on_level_change: Optional[Callable[[float], None]] = None,
         on_device_fallback: Optional[Callable[[int], None]] = None,
+        on_max_duration: Optional[Callable[[], None]] = None,
     ):
         self.sample_rate = sample_rate
         self.channels = channels
@@ -27,6 +28,7 @@ class AudioRecorder:
         self.device_index = device_index  # -1 = system default
         self.on_level_change = on_level_change
         self.on_device_fallback = on_device_fallback
+        self.on_max_duration = on_max_duration
 
         self._recording = False
         self._audio_chunks: list[np.ndarray] = []
@@ -150,6 +152,13 @@ class AudioRecorder:
 
         if total_duration >= self.max_duration:
             self._recording = False
+            # Let the app finish the recording (stop stream, transcribe) —
+            # otherwise the UI stays in "recording" state until key release.
+            if self.on_max_duration:
+                try:
+                    self.on_max_duration()
+                except Exception:
+                    pass
 
     @staticmethod
     def list_devices() -> list[dict]:
@@ -165,6 +174,22 @@ class AudioRecorder:
                     "sample_rate": dev["default_samplerate"],
                 })
         return input_devices
+
+    @staticmethod
+    def refresh_device_list() -> list[dict]:
+        """Re-scan hardware and return the fresh input device list.
+
+        PortAudio caches devices at init time, so devices plugged in after
+        startup are invisible to query_devices() — restarting PortAudio is
+        the documented way to rescan. Must not be called while a stream
+        is open.
+        """
+        try:
+            sd._terminate()
+            sd._initialize()
+        except Exception:
+            pass
+        return AudioRecorder.list_devices()
 
     @staticmethod
     def get_default_device_name() -> str:

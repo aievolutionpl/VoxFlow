@@ -1,5 +1,7 @@
 @echo off
 cd /d "%~dp0"
-call venv\Scripts\activate.bat
-start "" pythonw -m voxflow.main
-if errorlevel 1 start "" python -m voxflow.main
+if exist "venv\Scripts\pythonw.exe" (
+    start "" "venv\Scripts\pythonw.exe" -m voxflow.main
+) else (
+    start "" pythonw -m voxflow.main
+)

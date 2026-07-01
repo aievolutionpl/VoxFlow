@@ -68,19 +68,26 @@ REM ==============================================================
 echo.
 echo [4/5] Tworzenie launchera i skrotu na pulpicie...
 
+REM Launcher uzywa venv\Scripts\pythonw.exe bezposrednio — activate.bat
+REM w skopiowanym venv ma zapisana na sztywno stara sciezke i po
+REM przeniesieniu folderu przestalby dzialac.
 (
 echo @echo off
 echo chcp 65001 ^>nul 2^>^&1
 echo cd /d "%%~dp0"
-echo call venv\Scripts\activate.bat
-echo start "" pythonw -m voxflow.main
-echo if errorlevel 1 start "" python -m voxflow.main
+echo if exist "venv\Scripts\pythonw.exe" ^(
+echo     start "" "venv\Scripts\pythonw.exe" -m voxflow.main
+echo ^) else ^(
+echo     start "" pythonw -m voxflow.main
+echo ^)
 ) > "%PORTABLE_DIR%\START_VOXFLOW.bat"
 
 REM --- Skrot na pulpicie wskazujacy na launcher portable ---
-call venv\Scripts\activate.bat
-set PORTABLE_ABS=%~dp0%PORTABLE_DIR%
-venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'%~dp0'); from voxflow.create_shortcut import create_desktop_shortcut_for_bat; create_desktop_shortcut_for_bat(r'%PORTABLE_ABS%')"
+REM Sciezki przekazujemy przez zmienne srodowiskowe — backslashe w sciezce
+REM (np. C:\Users\...) psuly literal Pythona ('\U' = blad skladni).
+set "VOXFLOW_DIR=%~dp0"
+set "PORTABLE_ABS=%~dp0%PORTABLE_DIR%"
+venv\Scripts\python.exe -c "import os, sys; sys.path.insert(0, os.environ['VOXFLOW_DIR'].rstrip('\\')); from voxflow.create_shortcut import create_desktop_shortcut_for_bat; create_desktop_shortcut_for_bat(os.environ['PORTABLE_ABS'])"
 if %errorlevel% equ 0 (
     echo [OK] Skrot VoxFlow Portable pojawil sie na pulpicie!
 ) else (
