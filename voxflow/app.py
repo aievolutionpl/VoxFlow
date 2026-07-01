@@ -1082,7 +1082,9 @@ class VoxFlowApp(ctk.CTk):
             )
             self.after(0, lambda: self._on_done(result))
         except Exception as e:
-            self.after(0, lambda: self._on_error(str(e)))
+            # Bind the message now — the except variable is deleted when
+            # the block exits, so a plain closure would raise NameError.
+            self.after(0, lambda err=str(e): self._on_error(err))
 
     def _on_done(self, result: dict):
         self._processing = False
@@ -1307,8 +1309,8 @@ class VoxFlowApp(ctk.CTk):
         except Exception as e:
             self.after(
                 0,
-                lambda: self.status.configure(
-                    text=f"❌ Model: {str(e)[:50]}", text_color=C["rec_red"]
+                lambda err=str(e): self.status.configure(
+                    text=f"❌ Model: {err[:50]}", text_color=C["rec_red"]
                 ),
             )
 
@@ -1377,8 +1379,8 @@ class VoxFlowApp(ctk.CTk):
         except Exception as e:
             self.after(
                 0,
-                lambda: self.status.configure(
-                    text=f"❌ {str(e)[:70]}", text_color=C["rec_red"]
+                lambda err=str(e): self.status.configure(
+                    text=f"❌ {err[:70]}", text_color=C["rec_red"]
                 ),
             )
 
