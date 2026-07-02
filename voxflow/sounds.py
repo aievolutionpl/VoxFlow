@@ -73,7 +73,7 @@ _SOUNDS = {
 
 def play(name: str):
     """Play a named sound effect in a background thread.
-    
+
     Args:
         name: One of 'start', 'stop', 'done', 'error'
     """

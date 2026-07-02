@@ -8,7 +8,6 @@ Fixes common Whisper transcription errors for Polish, English, German, and more:
 - Removes filler words/sounds
 """
 import re
-from typing import Optional
 
 
 # Common Polish filler words/sounds that Whisper sometimes outputs
@@ -29,7 +28,7 @@ POLISH_CORRECTIONS = {
     r"\bdla\s+tego\b": "dlatego",
     r"\bpomi\s+mo\b": "pomimo",
     r"\bponieważ\s+że\b": "ponieważ",
-    # Common encoding issues  
+    # Common encoding issues
     r"\bze\s+by\b": "żeby",
     r"\bw\s+łaściwie\b": "właściwie",
     # Whisper sometimes outputs "..." or overly long pauses as text
@@ -76,7 +75,7 @@ def post_process(
     apply_corrections: bool = True,
 ) -> str:
     """Apply post-processing corrections to transcribed text.
-    
+
     Args:
         text: Raw transcription text
         language: Detected language ("pl", "en", or "auto")
@@ -85,7 +84,7 @@ def post_process(
         remove_fillers: Remove filler words (yyy, eee, etc.)
         fix_repetitions: Remove repeated phrases (Whisper hallucination)
         apply_corrections: Apply language-specific corrections
-        
+
     Returns:
         Cleaned and corrected text
     """
@@ -139,19 +138,22 @@ def _remove_artifacts(text: str) -> str:
     # Remove timestamps like "00:00:00"
     text = re.sub(r"\d{1,2}:\d{2}(:\d{2})?", "", text)
     # Remove "Napisy...", "Subtitles...", "Dziękuję." at end (Whisper hallucinations)
-    text = re.sub(r"\b(Napisy|Subtitles|Subscribe|Subskrybuj|Dziękuję za oglądanie|Thanks for watching)\.?\s*$", "", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"\b(Napisy|Subtitles|Subscribe|Subskrybuj|Dziękuję za oglądanie|Thanks for watching)\.?\s*$",
+        "", text, flags=re.IGNORECASE,
+    )
     return text.strip()
 
 
 def _fix_repetitions(text: str) -> str:
     """Remove repeated phrases — a common Whisper hallucination.
-    
+
     Detects patterns like "To jest test. To jest test. To jest test."
     and reduces them to a single occurrence.
     """
     # Split into sentences
     sentences = re.split(r'(?<=[.!?])\s+', text)
-    
+
     if len(sentences) <= 1:
         return text
 
@@ -211,17 +213,17 @@ def _fix_capitalization(text: str) -> str:
     """Fix capitalization: first letter of each sentence should be uppercase."""
     if not text:
         return text
-    
+
     # Capitalize first character
     result = text[0].upper() + text[1:] if len(text) > 1 else text.upper()
-    
+
     # Capitalize after sentence-ending punctuation
     result = re.sub(
         r'([.!?]\s+)([a-ząćęłńóśźż])',
         lambda m: m.group(1) + m.group(2).upper(),
         result,
     )
-    
+
     return result
 
 

@@ -6,7 +6,7 @@ import json
 import os
 import re
 from pathlib import Path
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 
 
 def get_config_dir() -> Path:
@@ -29,20 +29,20 @@ _HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 def _validate_config(data: dict) -> dict:
     """Validate and sanitize configuration values loaded from JSON.
-    
+
     Prevents malformed config files from causing unexpected behavior.
     Returns sanitized dict with invalid values replaced by defaults.
     """
     defaults = VoxFlowConfig()
     validated = {}
-    
+
     for key, value in data.items():
         if key not in VoxFlowConfig.__dataclass_fields__:
             continue  # Skip unknown keys
-        
+
         field_obj = VoxFlowConfig.__dataclass_fields__[key]
         default_val = getattr(defaults, key)
-        
+
         # Type validation — field.type may be the type object or its name
         # (string annotation), so handle both forms.
         expected_type = field_obj.type
@@ -58,7 +58,7 @@ def _validate_config(data: dict) -> dict:
         elif expected_type in (float, "float") and (isinstance(value, bool) or not isinstance(value, (int, float))):
             validated[key] = default_val
             continue
-        
+
         # Range and value validation
         if key == "model_size" and value not in _VALID_MODELS:
             validated[key] = default_val
@@ -97,7 +97,7 @@ def _validate_config(data: dict) -> dict:
             validated[key] = int(value)  # -1 = default device
         else:
             validated[key] = value
-    
+
     return validated
 
 

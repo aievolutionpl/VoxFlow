@@ -23,7 +23,7 @@ _MODIFIER_KEYS = frozenset({
 
 class HotkeyManager:
     """Manages hold-to-record hotkey using keyboard hook.
-    
+
     Uses keyboard.hook_key() or keyboard.add_hotkey() depending on
     whether the hotkey is a single key or a combination.
     """

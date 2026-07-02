@@ -161,4 +161,4 @@ class RecordingOverlay:
             col = "#f43f5e" if ratio > 0.75 else "#a78bfa" if ratio > 0.45 else "#7c3aed"
 
             c.create_rectangle(x, cy - amp, x + bw, cy + amp,
-                                fill=col, outline="")
+                               fill=col, outline="")

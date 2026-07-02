@@ -794,7 +794,6 @@ class VoxFlowApp(ctk.CTk):
             justify="left",
         ).pack(anchor="w")
 
-
     # ── Footer ────────────────────────────────────────────────────
 
     def _build_footer(self):
@@ -1318,8 +1317,18 @@ class VoxFlowApp(ctk.CTk):
         t = self.textbox.get("1.0", "end").strip()
         placeholder = "Twój tekst pojawi się tutaj"
         if t and not t.startswith(placeholder):
-            pyperclip.copy(t)
-            self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
+            try:
+                pyperclip.copy(t)
+                self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
+            except Exception:
+                self.status.configure(
+                    text="⚠️ Nie udało się skopiować do schowka", text_color=C["warn"]
+                )
+        else:
+            self.status.configure(
+                text="ℹ️ Brak tekstu do skopiowania — najpierw nagraj dyktando",
+                text_color=C["txt2"],
+            )
 
     def _clear_transcript(self):
         # Keep the textbox editable — consistent with the "always editable"

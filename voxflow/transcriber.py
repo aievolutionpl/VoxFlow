@@ -81,7 +81,7 @@ class VoxTranscriber:
         on_progress: Optional[callable] = None,
     ) -> dict:
         """Transcribe audio data to text with maximum quality.
-        
+
         Args:
             audio_data: numpy array of audio samples (float32, 16kHz mono)
             language: Language code ("pl", "en", "de", ...) or "auto" for detection
@@ -90,7 +90,7 @@ class VoxTranscriber:
             auto_correct: Apply post-processing auto-correction
             task: "transcribe" (default) or "translate" (Whisper translates to English)
             on_progress: Callback for progress updates
-            
+
         Returns:
             dict with keys: text, raw_text, language, segments, duration, translated
         """

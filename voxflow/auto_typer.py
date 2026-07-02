@@ -4,7 +4,6 @@ Built by AI Evolution Polska
 """
 import sys
 import time
-from typing import Optional
 
 # Maximum text length to auto-type (safety guard)
 MAX_AUTO_TYPE_LENGTH = 10000
@@ -19,7 +18,7 @@ class AutoTyper:
     @staticmethod
     def type_text(text: str, method: str = "clipboard"):
         """Type text into the active window.
-        
+
         Args:
             text: The text to type
             method: "clipboard" (paste via Ctrl+V) or "keyboard" (simulate keypresses)
@@ -47,12 +46,6 @@ class AutoTyper:
         """Paste text using clipboard (Ctrl+V) - fastest and most reliable."""
         import pyperclip
         import keyboard
-
-        # Save current clipboard (optional, some users may not want this)
-        try:
-            old_clipboard = pyperclip.paste()
-        except Exception:
-            old_clipboard = None
 
         # Set new text to clipboard
         pyperclip.copy(text)

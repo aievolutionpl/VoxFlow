@@ -28,11 +28,11 @@ def main():
             print("  ✓ recorder")
             from voxflow.transcriber import VoxTranscriber
             print("  ✓ transcriber")
-            from voxflow.hotkey_manager import HotkeyManager
+            from voxflow.hotkey_manager import HotkeyManager  # noqa: F401
             print("  ✓ hotkey_manager")
-            from voxflow.tray import TrayManager
+            from voxflow.tray import TrayManager  # noqa: F401
             print("  ✓ tray")
-            from voxflow.app import VoxFlowApp
+            from voxflow.app import VoxFlowApp  # noqa: F401
             print("  ✓ app")
             print("\n✅ All imports successful!")
 
@@ -57,7 +57,7 @@ def main():
 
     # Normal launch
     try:
-        from voxflow.app import VoxFlowApp
+        from voxflow.app import VoxFlowApp  # noqa: F811
         app = VoxFlowApp()
         app.mainloop()
     except KeyboardInterrupt:

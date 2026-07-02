@@ -3,7 +3,6 @@
 Built by AI Evolution Polska
 """
 import os
-import sys
 import re
 import subprocess
 
@@ -29,7 +28,7 @@ def _get_desktop() -> str:
 
 
 def _create_via_powershell(shortcut_path: str, target: str, workdir: str,
-                            icon_path: str, description: str, args: str = "") -> bool:
+                           icon_path: str, description: str, args: str = "") -> bool:
     """Create a .lnk shortcut by writing and running a temp PowerShell script."""
     import tempfile
 
@@ -81,7 +80,6 @@ def _create_via_powershell(shortcut_path: str, target: str, workdir: str,
             pass
 
 
-
 def create_desktop_shortcut_for_bat(project_dir: str) -> bool:
     """Create a desktop shortcut that launches START_VOXFLOW.bat.
 
@@ -130,7 +128,7 @@ def create_desktop_shortcut_for_bat(project_dir: str) -> bool:
     if ok:
         print(f"✅ Skrót na pulpicie: {shortcut_path}")
     else:
-        print(f"⚠️  Nie udało się stworzyć skrótu. Możesz ręcznie przeciągnąć START_VOXFLOW.bat na pulpit.")
+        print("⚠️  Nie udało się stworzyć skrótu. Możesz ręcznie przeciągnąć START_VOXFLOW.bat na pulpit.")
     return ok
 
 
