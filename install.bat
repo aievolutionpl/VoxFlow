@@ -94,7 +94,7 @@ echo  KROK 3: Weryfikacja instalacji...
 echo ------------------------------------------------------------
 echo.
 
-python -m voxflow.main --test
+venv\Scripts\python.exe -m voxflow.main --test
 
 if %errorlevel% neq 0 (
     echo.
@@ -112,9 +112,11 @@ echo ------------------------------------------------------------
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo call venv\Scripts\activate.bat
-echo start "" pythonw -m voxflow.main
-echo if errorlevel 1 start "" python -m voxflow.main
+echo if exist "venv\Scripts\pythonw.exe" ^(
+echo     start "" "venv\Scripts\pythonw.exe" -m voxflow.main
+echo ^) else ^(
+echo     start "" pythonw -m voxflow.main
+echo ^)
 ) > START_VOXFLOW.bat
 
 echo [OK] Plik START_VOXFLOW.bat stworzony!
@@ -125,7 +127,10 @@ echo  KROK 5: Tworzenie skrotu na pulpicie...
 echo ------------------------------------------------------------
 echo.
 
-venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'%~dp0'); from voxflow.create_shortcut import create_desktop_shortcut_for_bat; create_desktop_shortcut_for_bat('%~dp0'.rstrip(chr(92)))"
+REM Sciezke przekazujemy przez zmienna srodowiskowa — backslashe w sciezce
+REM (np. C:\Users\...) psuly literal Pythona ('\U' = blad skladni).
+set "VOXFLOW_DIR=%~dp0"
+venv\Scripts\python.exe -c "import os, sys; d = os.environ['VOXFLOW_DIR'].rstrip('\\'); sys.path.insert(0, d); from voxflow.create_shortcut import create_desktop_shortcut_for_bat; create_desktop_shortcut_for_bat(d)"
 if %errorlevel% neq 0 (
     echo [UWAGA] Skrotu nie udalo sie utworzyc automatycznie.
     echo         Mozesz recznie przeniesc START_VOXFLOW.bat na pulpit.
@@ -148,8 +153,7 @@ if /i "%LAUNCH%"=="n" goto :end
 
 echo.
 echo Uruchamianie VoxFlow...
-start "" pythonw -m voxflow.main
-if errorlevel 1 start "" python -m voxflow.main
+start "" "venv\Scripts\pythonw.exe" -m voxflow.main
 
 :end
 deactivate 2>nul

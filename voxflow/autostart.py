@@ -5,7 +5,6 @@ Adds/removes VoxFlow from Windows startup using the Registry
 
 Built by AI Evolution Polska
 """
-import os
 import sys
 
 _REGISTRY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -57,7 +56,7 @@ def enable_autostart():
         exe_path = get_exe_path()
 
         if not _validate_exe_path(exe_path):
-            print(f"❌ Auto-start error: Invalid executable path")
+            print("❌ Auto-start error: Invalid executable path")
             return False
 
         with winreg.OpenKey(

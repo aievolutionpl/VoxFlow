@@ -139,7 +139,7 @@ class RecordingOverlay:
                       font=("Segoe UI", 9, "bold"),
                       anchor="w")
         c.create_text(42, cy + 8,
-                      text="zwolnij klawisz aby zakonczyc",
+                      text="zwolnij klawisz aby zakończyć",
                       fill="#6b5e9b",
                       font=("Segoe UI", 7),
                       anchor="w")
@@ -161,4 +161,4 @@ class RecordingOverlay:
             col = "#f43f5e" if ratio > 0.75 else "#a78bfa" if ratio > 0.45 else "#7c3aed"
 
             c.create_rectangle(x, cy - amp, x + bw, cy + amp,
-                                fill=col, outline="")
+                               fill=col, outline="")

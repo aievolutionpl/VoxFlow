@@ -1,5 +1,5 @@
 """Generate a beautiful VoxFlow .ico icon."""
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 import os
 
 

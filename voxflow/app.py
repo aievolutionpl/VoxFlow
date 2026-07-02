@@ -60,6 +60,33 @@ C = {
     "border2":      "#2d2d5e",
 }
 
+LANG_FLAGS = {
+    "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
+    "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
+    "uk": "🇺🇦",
+}
+
+LANG_CODES = ["auto", "pl", "en", "de", "fr", "es", "it", "uk"]
+
+
+def _blend(hex_color: str, target: str, factor: float) -> str:
+    """Blend hex_color towards target (another hex) by factor 0–1."""
+    c = [int(hex_color[i:i + 2], 16) for i in (1, 3, 5)]
+    t = [int(target[i:i + 2], 16) for i in (1, 3, 5)]
+    mixed = [round(a + (b - a) * factor) for a, b in zip(c, t)]
+    return "#" + "".join(f"{v:02x}" for v in mixed)
+
+
+def apply_palette(accent: str, bg: str) -> None:
+    """Derive the full color palette from an accent and background color."""
+    C["accent"] = accent
+    C["accent2"] = _blend(accent, "#ffffff", 0.35)
+    C["accent3"] = _blend(accent, "#ffffff", 0.60)
+    C["accent_dim"] = _blend(accent, "#000000", 0.30)
+    C["accent_glow"] = _blend(accent, "#000000", 0.45)
+    C["bg"] = bg
+    C["bg_card"] = _blend(bg, "#ffffff", 0.06)
+
 
 class VoxFlowApp(ctk.CTk):
     """Main VoxFlow application window."""
@@ -68,6 +95,9 @@ class VoxFlowApp(ctk.CTk):
         super().__init__()
 
         self.config = VoxFlowConfig.load()
+        # Re-apply the persisted color theme before any widget is built,
+        # so every card/border/accent uses the saved colors consistently.
+        apply_palette(self.config.theme_accent, self.config.theme_bg)
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
@@ -98,6 +128,7 @@ class VoxFlowApp(ctk.CTk):
             device_index=self.config.audio_device_index,
             on_level_change=self._on_level,
             on_device_fallback=self._on_device_fallback,
+            on_max_duration=self._on_max_duration,
         )
 
         self.transcriber = VoxTranscriber(
@@ -139,12 +170,40 @@ class VoxFlowApp(ctk.CTk):
     # DEVICE ENUMERATION
     # ═══════════════════════════════════════════════════════════════
 
+    @staticmethod
+    def _lang_display(code: str) -> str:
+        """Dropdown label for a language code, e.g. '🇵🇱 pl'."""
+        return f"{LANG_FLAGS.get(code, '🌍')} {code}"
+
     def _load_audio_devices(self):
         """Load list of available audio input devices."""
         try:
             self._audio_devices = AudioRecorder.list_devices()
         except Exception:
             self._audio_devices = []
+
+    def _refresh_devices(self):
+        """Re-scan audio hardware and update the microphone dropdown."""
+        if self._recording or self._processing:
+            return
+        try:
+            self._audio_devices = AudioRecorder.refresh_device_list()
+        except Exception:
+            self._audio_devices = []
+        names = self._get_device_names()
+        self.mic_menu.configure(values=names)
+        current = self._get_current_device_label()
+        if current not in names:
+            # Selected device disappeared — fall back to system default
+            current = names[0]
+            self.config.audio_device_index = -1
+            self.config.save()
+            self.recorder.set_device(-1)
+        self.mic_var.set(current)
+        self.status.configure(
+            text=f"🔄 Znaleziono {len(self._audio_devices)} urządzeń audio",
+            text_color=C["ok"],
+        )
 
     def _get_device_names(self) -> list[str]:
         """Return device display names for UI dropdown."""
@@ -385,6 +444,14 @@ class VoxFlowApp(ctk.CTk):
         if current not in device_names:
             current = device_names[0]
 
+        ctk.CTkButton(
+            inner, text="🔄", width=32, height=28,
+            font=ctk.CTkFont(size=12),
+            fg_color=C["bg_input"], hover_color=C["accent_dim"],
+            border_width=1, border_color=C["border2"],
+            corner_radius=8, command=self._refresh_devices,
+        ).pack(side="right", padx=(6, 0))
+
         self.mic_var = ctk.StringVar(value=current)
         self.mic_menu = ctk.CTkOptionMenu(
             inner,
@@ -435,6 +502,13 @@ class VoxFlowApp(ctk.CTk):
             text_color=C["txt2"],
         ).pack(side="left")
 
+        self.stats_label = ctk.CTkLabel(
+            head, text="",
+            font=ctk.CTkFont(size=10),
+            text_color=C["txt3"],
+        )
+        self.stats_label.pack(side="left", padx=(10, 0))
+
         btn_row = ctk.CTkFrame(head, fg_color="transparent")
         btn_row.pack(side="right")
 
@@ -461,6 +535,7 @@ class VoxFlowApp(ctk.CTk):
         )
         self.textbox.pack(fill="both", expand=True, padx=14, pady=(6, 10))
         self.textbox.insert("1.0", "Twój tekst pojawi się tutaj — możesz go edytować przed skopiowaniem...")
+        self.textbox.bind("<KeyRelease>", lambda _e: self._update_text_stats())
 
     # ── Quick Controls (language / model / hotkey) ─────────────────
 
@@ -480,9 +555,9 @@ class VoxFlowApp(ctk.CTk):
         lf.pack(side="left", expand=True, fill="x", padx=(0, 5))
         ctk.CTkLabel(lf, text="🌍 Język", font=ctk.CTkFont(size=10, weight="bold"),
                      text_color=C["txt3"]).pack(anchor="w")
-        self.lang_var = ctk.StringVar(value=self.config.language)
+        self.lang_var = ctk.StringVar(value=self._lang_display(self.config.language))
         ctk.CTkOptionMenu(
-            lf, values=["auto", "pl", "en", "de", "fr", "es", "it", "uk"],
+            lf, values=[self._lang_display(c) for c in LANG_CODES],
             variable=self.lang_var,
             font=ctk.CTkFont(size=11),
             fg_color=C["bg_input"],
@@ -681,36 +756,23 @@ class VoxFlowApp(ctk.CTk):
             ("Zielony",   "#059669", "#08130f"),
         ]
 
-        def _blend(hex_color, target, factor):
-            """Blend hex_color towards target (another hex) by factor 0–1."""
-            c = [int(hex_color[i:i + 2], 16) for i in (1, 3, 5)]
-            t = [int(target[i:i + 2], 16) for i in (1, 3, 5)]
-            mixed = [round(a + (b - a) * factor) for a, b in zip(c, t)]
-            return "#" + "".join(f"{v:02x}" for v in mixed)
-
         def _apply_theme(accent, bg):
-            # Derive lighter/darker variants so the UI keeps its depth
-            C["accent"] = accent
-            C["accent2"] = _blend(accent, "#ffffff", 0.35)
-            C["accent3"] = _blend(accent, "#ffffff", 0.60)
-            C["accent_dim"] = _blend(accent, "#000000", 0.30)
-            C["accent_glow"] = _blend(accent, "#000000", 0.45)
-            C["bg"] = bg
-            C["bg_card"] = _blend(bg, "#ffffff", 0.06)
+            apply_palette(accent, bg)
+            # Persist the choice — restored on next launch
+            self.config.theme_accent = accent
+            self.config.theme_bg = bg
+            self.config.save()
             # Update main window background
             self.configure(fg_color=bg)
             # Update key widgets that cache their colors at build time
-            self.settings_btn.configure(
-                hover_color=accent,
-            )
-            self.level_bar.configure(
-                progress_color=accent,
-            )
-            self.hotkey_btn.configure(
-                hover_color=accent,
-            )
+            self.settings_btn.configure(hover_color=accent)
+            self.level_bar.configure(progress_color=accent)
+            self.hotkey_btn.configure(hover_color=accent)
             # Canvas redraws automatically via _animate() every 50ms using C[]
-            self.config.save()
+            self.status.configure(
+                text="🎨 Motyw zapisany — pełne kolory po ponownym uruchomieniu",
+                text_color=C["ok"],
+            )
 
         for label, accent, bg in THEMES:
             ctk.CTkButton(
@@ -731,7 +793,6 @@ class VoxFlowApp(ctk.CTk):
             text_color=C["txt3"],
             justify="left",
         ).pack(anchor="w")
-
 
     # ── Footer ────────────────────────────────────────────────────
 
@@ -952,8 +1013,18 @@ class VoxFlowApp(ctk.CTk):
         else:
             self._start_rec()
 
+    def _on_max_duration(self):
+        """Recording hit the time limit (called from the audio thread)."""
+        self.after(0, self._stop_rec)
+
     def _start_rec(self):
         if self._recording or self._processing or self._capturing_hotkey:
+            return
+        if not self.transcriber.is_loaded:
+            self.status.configure(
+                text="⏳ Model AI jeszcze się ładuje — spróbuj za chwilę...",
+                text_color=C["warn"],
+            )
             return
         try:
             self.recorder.start()
@@ -997,7 +1068,9 @@ class VoxFlowApp(ctk.CTk):
             task = "translate" if self.config.translate_enabled else "transcribe"
             result = self.transcriber.transcribe(
                 audio,
-                language=self.lang_var.get(),
+                # Read from config, not the Tk variable — this runs in a
+                # background thread and Tk variables are not thread-safe.
+                language=self.config.language,
                 beam_size=self.config.beam_size,
                 vad_enabled=self.config.vad_enabled,
                 auto_correct=self.config.auto_correct,
@@ -1008,7 +1081,9 @@ class VoxFlowApp(ctk.CTk):
             )
             self.after(0, lambda: self._on_done(result))
         except Exception as e:
-            self.after(0, lambda: self._on_error(str(e)))
+            # Bind the message now — the except variable is deleted when
+            # the block exits, so a plain closure would raise NameError.
+            self.after(0, lambda err=str(e): self._on_error(err))
 
     def _on_done(self, result: dict):
         self._processing = False
@@ -1021,6 +1096,7 @@ class VoxFlowApp(ctk.CTk):
         self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
+        self._update_text_stats()
 
         # Auto-copy
         if self.config.auto_copy_to_clipboard:
@@ -1039,12 +1115,7 @@ class VoxFlowApp(ctk.CTk):
 
         lang = result.get("language", "?")
         translated = result.get("translated", False)
-        _LANG_FLAGS = {
-            "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
-            "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-            "uk": "🇺🇦",
-        }
-        flag = _LANG_FLAGS.get(lang, "🌍")
+        flag = LANG_FLAGS.get(lang, "🌍")
         dur = result.get("duration", 0)
         extras = []
         if self.config.auto_type_enabled:
@@ -1102,11 +1173,6 @@ class VoxFlowApp(ctk.CTk):
                 font=ctk.CTkFont(size=11), text_color=C["txt3"],
             ).pack(pady=4)
             return
-        _LANG_FLAGS = {
-            "pl": "🇵🇱", "en": "🇬🇧", "de": "🇩🇪",
-            "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-            "uk": "🇺🇦",
-        }
         for e in self._history[:10]:
             row = ctk.CTkFrame(
                 self.hist_frame, fg_color=C["bg_hover"],
@@ -1114,7 +1180,7 @@ class VoxFlowApp(ctk.CTk):
             )
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
-            flag = _LANG_FLAGS.get(e["language"], "🌍")
+            flag = LANG_FLAGS.get(e["language"], "🌍")
             dur_s = f"{e.get('duration', 0):.0f}s"
             preview = e["text"][:38] + ("…" if len(e["text"]) > 38 else "")
             t = e["text"]
@@ -1154,6 +1220,7 @@ class VoxFlowApp(ctk.CTk):
         self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
+        self._update_text_stats()
         self.status.configure(text="📂 Wczytano z historii", text_color=C["txt2"])
 
     # ═══════════════════════════════════════════════════════════════
@@ -1161,7 +1228,8 @@ class VoxFlowApp(ctk.CTk):
     # ═══════════════════════════════════════════════════════════════
 
     def _on_lang(self, v):
-        self.config.language = v
+        # Dropdown shows "🇵🇱 pl" — the code is the last token
+        self.config.language = v.split()[-1]
         self.config.save()
 
     def _on_model(self, v):
@@ -1240,8 +1308,8 @@ class VoxFlowApp(ctk.CTk):
         except Exception as e:
             self.after(
                 0,
-                lambda: self.status.configure(
-                    text=f"❌ Model: {str(e)[:50]}", text_color=C["rec_red"]
+                lambda err=str(e): self.status.configure(
+                    text=f"❌ Model: {err[:50]}", text_color=C["rec_red"]
                 ),
             )
 
@@ -1249,8 +1317,18 @@ class VoxFlowApp(ctk.CTk):
         t = self.textbox.get("1.0", "end").strip()
         placeholder = "Twój tekst pojawi się tutaj"
         if t and not t.startswith(placeholder):
-            pyperclip.copy(t)
-            self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
+            try:
+                pyperclip.copy(t)
+                self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
+            except Exception:
+                self.status.configure(
+                    text="⚠️ Nie udało się skopiować do schowka", text_color=C["warn"]
+                )
+        else:
+            self.status.configure(
+                text="ℹ️ Brak tekstu do skopiowania — najpierw nagraj dyktando",
+                text_color=C["txt2"],
+            )
 
     def _clear_transcript(self):
         # Keep the textbox editable — consistent with the "always editable"
@@ -1258,6 +1336,15 @@ class VoxFlowApp(ctk.CTk):
         self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", "Twój tekst pojawi się tutaj...")
+        self._update_text_stats()
+
+    def _update_text_stats(self):
+        """Update the word/character counter above the transcript box."""
+        t = self.textbox.get("1.0", "end").strip()
+        if not t or t.startswith("Twój tekst pojawi się tutaj"):
+            self.stats_label.configure(text="")
+            return
+        self.stats_label.configure(text=f"{len(t.split())} słów • {len(t)} znaków")
 
     def _on_level(self, lv):
         self._level = lv
@@ -1301,8 +1388,8 @@ class VoxFlowApp(ctk.CTk):
         except Exception as e:
             self.after(
                 0,
-                lambda: self.status.configure(
-                    text=f"❌ {str(e)[:70]}", text_color=C["rec_red"]
+                lambda err=str(e): self.status.configure(
+                    text=f"❌ {err[:70]}", text_color=C["rec_red"]
                 ),
             )
 

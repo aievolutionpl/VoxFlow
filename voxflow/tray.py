@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw
 
 def create_tray_icon_image(recording: bool = False) -> Image.Image:
     """Create a simple tray icon image.
-    
+
     Args:
         recording: If True, shows red recording indicator
     """
