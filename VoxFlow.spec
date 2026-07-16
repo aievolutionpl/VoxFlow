@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('voxflow', 'voxflow'), ('assets', 'assets')]
 binaries = []
-hiddenimports = ['faster_whisper', 'ctranslate2', 'huggingface_hub', 'tokenizers', 'sounddevice', 'customtkinter', 'pystray', 'keyboard', 'pyperclip', '_sounddevice_data', 'scipy', 'scipy.signal', 'PIL', 'PIL.Image', 'PIL.ImageDraw', 'PIL.ImageFilter']
+hiddenimports = ['faster_whisper', 'ctranslate2', 'huggingface_hub', 'tokenizers', 'sounddevice', 'customtkinter', 'pystray', 'keyboard', 'pyperclip', '_sounddevice_data', 'scipy', 'scipy.signal', 'PIL', 'PIL.Image', 'PIL.ImageDraw', 'PIL.ImageFilter', 'pycaw', 'pycaw.pycaw', 'comtypes']
 tmp_ret = collect_all('customtkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('faster_whisper')

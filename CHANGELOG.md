@@ -7,6 +7,33 @@ wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 
 ---
 
+## [1.3.0] — 2026-07-16
+
+### ✨ Dodane
+- 🎵 **Auto-ściszanie muzyki podczas nagrywania** — gdy przytrzymasz klawisz
+  dyktowania, grająca w tle muzyka (Spotify, YouTube itp.) jest automatycznie
+  przyciszana, a po zakończeniu wraca do poprzedniego poziomu. Na Windows
+  ściszane są tylko inne aplikacje (per-aplikacja przez pycaw), na macOS/Linux
+  głośność systemowa. Konfigurowalny poziom (0/20/40/60%) w ustawieniach
+- 💾 **Trwała historia nagrań** — historia jest zapisywana na dysku
+  (do 50 wpisów) i przywracana po ponownym uruchomieniu; starsze wpisy
+  pokazują datę obok godziny
+- ⏱️ **Licznik czasu nagrywania** — status pokazuje upływający czas (M:SS),
+  a w ostatnich 30 sekundach ostrzega przed limitem
+- 💾 Przycisk zapisu transkrypcji do pliku (.txt / .md)
+- 🎨 Trzy nowe motywy kolorów: Różowy, Bursztyn, Grafitowy
+
+### 🔧 Poprawki jakości
+- ⚙️ Panel ustawień jest teraz **przewijalny** i otwiera się w miejscu karty
+  historii — wcześniej dolne opcje wystawały poza okno i były nieosiągalne
+- 🎨 Motyw kolorów stosowany jest teraz **natychmiast** w całym interfejsie —
+  bez ponownego uruchamiania aplikacji (tekst i historia są zachowywane)
+- Kliknięcie w pole transkrypcji usuwa tekst zastępczy, żeby można było
+  od razu pisać
+- Ujednolicono tekst zastępczy pola transkrypcji (jedna stała w kodzie)
+
+---
+
 ## [1.2.0] — 2026-07-01
 
 ### ✨ Dodane
