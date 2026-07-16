@@ -5,7 +5,7 @@
 ; ═══════════════════════════════════════════════════════════════
 
 #define MyAppName      "VoxFlow"
-#define MyAppVersion   "1.2.0"
+#define MyAppVersion   "1.3.0"
 #define MyAppPublisher "AI Evolution Polska"
 #define MyAppExeName   "VoxFlow.exe"
 #define MyAppURL       "https://github.com/aievolutionpl/VoxFlow"

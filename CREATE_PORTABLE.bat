@@ -10,7 +10,7 @@ echo   by AI Evolution Polska
 echo ============================================================
 echo.
 
-set VER=1.2.0
+set VER=1.3.0
 set PORTABLE_DIR=portable\VoxFlow_Portable_v%VER%
 
 REM --- Sprawdz venv ---

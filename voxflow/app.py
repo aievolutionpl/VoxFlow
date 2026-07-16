@@ -3,17 +3,20 @@
 Built by AI Evolution Polska
 https://github.com/aievolutionpl/VoxFlow
 """
+import json
 import sys
 import threading
 import time
 import math
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 import customtkinter as ctk
 import pyperclip
 import numpy as np
 
-from voxflow.config import VoxFlowConfig
+from voxflow.config import VoxFlowConfig, get_config_dir
+from voxflow.audio_ducker import AudioDucker
 from voxflow.recorder import AudioRecorder
 from voxflow.transcriber import VoxTranscriber
 from voxflow.hotkey_manager import HotkeyManager
@@ -68,6 +71,13 @@ LANG_FLAGS = {
 
 LANG_CODES = ["auto", "pl", "en", "de", "fr", "es", "it", "uk"]
 
+# Placeholder shown in the transcript box before the first dictation
+PLACEHOLDER_PREFIX = "Twój tekst pojawi się tutaj"
+PLACEHOLDER = PLACEHOLDER_PREFIX + " — możesz go edytować przed skopiowaniem..."
+
+MAX_HISTORY_SAVED = 50   # entries persisted to disk
+MAX_HISTORY_SHOWN = 10   # entries rendered in the UI
+
 
 def _blend(hex_color: str, target: str, factor: float) -> str:
     """Blend hex_color towards target (another hex) by factor 0–1."""
@@ -117,6 +127,8 @@ class VoxFlowApp(ctk.CTk):
         self._capturing_hotkey = False
         self._hotkey_capture_secs = 0
         self._audio_devices: list[dict] = []
+        self._rec_start = 0.0
+        self._last_timer_text = ""
 
         # ─── Engine ───────────────────────────────────────────────
         self.recorder = AudioRecorder(
@@ -156,10 +168,14 @@ class VoxFlowApp(ctk.CTk):
 
         self.auto_typer = AutoTyper()
         self.overlay = RecordingOverlay()
+        self.ducker = AudioDucker(duck_level=self.config.duck_audio_level)
 
         # ─── Build ────────────────────────────────────────────────
         self._load_audio_devices()
+        self._load_history()
         self._build_ui()
+        if self._history:
+            self._refresh_history()
         self._start_services()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -520,6 +536,13 @@ class VoxFlowApp(ctk.CTk):
         ).pack(side="right", padx=(4, 0))
 
         ctk.CTkButton(
+            btn_row, text="💾", width=30, height=26,
+            font=ctk.CTkFont(size=11),
+            fg_color=C["bg_hover"], hover_color=C["accent"],
+            corner_radius=8, command=self._save_text,
+        ).pack(side="right", padx=(4, 0))
+
+        ctk.CTkButton(
             btn_row, text="📋 Kopiuj", width=80, height=26,
             font=ctk.CTkFont(size=11),
             fg_color=C["bg_hover"], hover_color=C["accent"],
@@ -534,8 +557,10 @@ class VoxFlowApp(ctk.CTk):
             wrap="word", height=90, border_width=0,
         )
         self.textbox.pack(fill="both", expand=True, padx=14, pady=(6, 10))
-        self.textbox.insert("1.0", "Twój tekst pojawi się tutaj — możesz go edytować przed skopiowaniem...")
+        self.textbox.insert("1.0", PLACEHOLDER)
         self.textbox.bind("<KeyRelease>", lambda _e: self._update_text_stats())
+        # Clicking into the box removes the placeholder so typing can start
+        self.textbox.bind("<FocusIn>", self._on_textbox_focus)
 
     # ── Quick Controls (language / model / hotkey) ─────────────────
 
@@ -614,6 +639,8 @@ class VoxFlowApp(ctk.CTk):
             border_width=1, border_color=C["border"],
         )
         card.pack(fill="x", pady=(0, 6))
+        # Kept so the settings panel can swap into this slot when opened
+        self.hist_card = card
 
         head = ctk.CTkFrame(card, fg_color="transparent")
         head.pack(fill="x", padx=14, pady=(10, 4))
@@ -644,16 +671,21 @@ class VoxFlowApp(ctk.CTk):
     # ── Settings Panel ────────────────────────────────────────────
 
     def _build_settings_panel(self):
-        """Build the collapsible advanced settings panel."""
-        self.settings_frame = ctk.CTkFrame(
+        """Build the collapsible advanced settings panel.
+
+        Scrollable — the option list is taller than the window, so a fixed
+        height with internal scrolling keeps every setting reachable.
+        """
+        self.settings_frame = ctk.CTkScrollableFrame(
             self.main, fg_color=C["bg_card"],
             corner_radius=12,
             border_width=1, border_color=C["accent_dim"],
+            height=280,
         )
         self._settings_visible = False
 
         inner = ctk.CTkFrame(self.settings_frame, fg_color="transparent")
-        inner.pack(fill="x", padx=14, pady=12)
+        inner.pack(fill="x", padx=6, pady=4)
 
         ctk.CTkLabel(
             inner, text="⚙️ Ustawienia zaawansowane",
@@ -712,6 +744,16 @@ class VoxFlowApp(ctk.CTk):
         self.sounds_var = ctk.BooleanVar(value=self.config.play_sounds)
         sw_row(inner, "🔊 Dźwięki nagrywania", self.sounds_var, self._on_sounds_toggle)
 
+        self.duck_var = ctk.BooleanVar(value=self.config.duck_audio_enabled)
+        sw_row(inner, "🎵 Ściszaj muzykę podczas nagrywania", self.duck_var, self._on_duck_toggle)
+
+        self.duck_level_var = ctk.StringVar(
+            value=f"{int(self.config.duck_audio_level * 100)}%"
+        )
+        opt_row(inner, "🔉 Głośność muzyki przy dyktowaniu",
+                ["0%", "20%", "40%", "60%"],
+                self.duck_level_var, self._on_duck_level, width=80)
+
         if sys.platform == "win32" and _AUTOSTART_AVAILABLE:
             self.autostart_var = ctk.BooleanVar(value=is_autostart_enabled())
             sw_row(inner, "🚀 Uruchamiaj z Windows", self.autostart_var, self._on_autostart_toggle)
@@ -747,41 +789,26 @@ class VoxFlowApp(ctk.CTk):
             text_color=C["txt2"],
         ).pack(anchor="w", pady=(0, 6))
 
-        theme_row = ctk.CTkFrame(inner, fg_color="transparent")
-        theme_row.pack(fill="x")
-
         THEMES = [
-            ("Fioletowy", "#7c3aed", "#09091a"),
+            ("Fioletowy",  "#7c3aed", "#09091a"),
             ("Niebieski",  "#1d4ed8", "#080e1a"),
-            ("Zielony",   "#059669", "#08130f"),
+            ("Zielony",    "#059669", "#08130f"),
+            ("Różowy",     "#db2777", "#16060e"),
+            ("Bursztyn",   "#d97706", "#140f06"),
+            ("Grafitowy",  "#64748b", "#0b0f14"),
         ]
 
-        def _apply_theme(accent, bg):
-            apply_palette(accent, bg)
-            # Persist the choice — restored on next launch
-            self.config.theme_accent = accent
-            self.config.theme_bg = bg
-            self.config.save()
-            # Update main window background
-            self.configure(fg_color=bg)
-            # Update key widgets that cache their colors at build time
-            self.settings_btn.configure(hover_color=accent)
-            self.level_bar.configure(progress_color=accent)
-            self.hotkey_btn.configure(hover_color=accent)
-            # Canvas redraws automatically via _animate() every 50ms using C[]
-            self.status.configure(
-                text="🎨 Motyw zapisany — pełne kolory po ponownym uruchomieniu",
-                text_color=C["ok"],
-            )
-
-        for label, accent, bg in THEMES:
-            ctk.CTkButton(
-                theme_row, text=label, width=100, height=30,
-                font=ctk.CTkFont(size=11),
-                fg_color=accent, hover_color=accent,
-                corner_radius=8,
-                command=lambda a=accent, b=bg: _apply_theme(a, b),
-            ).pack(side="left", padx=(0, 6))
+        for row_themes in (THEMES[:3], THEMES[3:]):
+            theme_row = ctk.CTkFrame(inner, fg_color="transparent")
+            theme_row.pack(fill="x", pady=(0, 4))
+            for label, accent, bg in row_themes:
+                ctk.CTkButton(
+                    theme_row, text=label, width=100, height=30,
+                    font=ctk.CTkFont(size=11),
+                    fg_color=accent, hover_color=accent,
+                    corner_radius=8,
+                    command=lambda a=accent, b=bg: self._apply_theme(a, b),
+                ).pack(side="left", padx=(0, 6))
 
         ctk.CTkFrame(inner, fg_color=C["border"], height=1).pack(fill="x", pady=(10, 6))
 
@@ -819,17 +846,53 @@ class VoxFlowApp(ctk.CTk):
     # ═══════════════════════════════════════════════════════════════
 
     def _toggle_settings(self):
+        # The settings panel swaps places with the history card — both at
+        # once don't fit the window, and pack would squeeze the panel to
+        # a sliver.
         if self._settings_visible:
             self.settings_frame.pack_forget()
             self._settings_visible = False
             self.settings_btn.configure(fg_color=C["bg_card"])
+            self.hist_card.pack(
+                fill="x", pady=(0, 6), before=self.footer_frame,
+            )
         else:
+            self.hist_card.pack_forget()
             self.settings_frame.pack(
                 fill="x", pady=(0, 6),
                 before=self.footer_frame,  # Always insert just before footer
             )
             self._settings_visible = True
             self.settings_btn.configure(fg_color=C["accent_dim"])
+
+    # ═══════════════════════════════════════════════════════════════
+    # THEME
+    # ═══════════════════════════════════════════════════════════════
+
+    def _apply_theme(self, accent: str, bg: str):
+        """Apply and persist a color theme, rebuilding the UI immediately."""
+        apply_palette(accent, bg)
+        self.config.theme_accent = accent
+        self.config.theme_bg = bg
+        self.config.save()
+        self._rebuild_ui()
+        self.status.configure(text="🎨 Motyw zastosowany", text_color=C["ok"])
+
+    def _rebuild_ui(self):
+        """Rebuild all widgets with the current palette, preserving state."""
+        text = self.textbox.get("1.0", "end").strip()
+        settings_open = self._settings_visible
+        self.main.destroy()
+        self.configure(fg_color=C["bg"])
+        self._build_ui()
+        if text and not text.startswith(PLACEHOLDER_PREFIX):
+            self.textbox.delete("1.0", "end")
+            self.textbox.insert("1.0", text)
+            self._update_text_stats()
+        if self._history:
+            self._refresh_history()
+        if settings_open:
+            self._toggle_settings()
 
     # ═══════════════════════════════════════════════════════════════
     # ANIMATION
@@ -847,6 +910,7 @@ class VoxFlowApp(ctk.CTk):
         cur = self.level_bar.get()
         if self._recording:
             self.level_bar.set(cur + (target - cur) * 0.35)
+            self._update_rec_timer()
         else:
             self.level_bar.set(max(0.0, cur * 0.8))
         self.level_bar.configure(
@@ -854,6 +918,21 @@ class VoxFlowApp(ctk.CTk):
         )
 
         self.after(50, self._animate)
+
+    def _update_rec_timer(self):
+        """Show elapsed recording time in the status label (updates 1×/s)."""
+        elapsed = int(time.time() - self._rec_start)
+        remaining = int(self.config.max_recording_duration) - elapsed
+        mins, secs = divmod(max(0, elapsed), 60)
+        if remaining <= 30:
+            text = f"🔴 Nagrywam... {mins}:{secs:02d} — koniec za {max(0, remaining)}s!"
+            color = C["warn"]
+        else:
+            text = f"🔴 Nagrywam... {mins}:{secs:02d} — Mów teraz!"
+            color = C["rec_red"]
+        if text != self._last_timer_text:
+            self._last_timer_text = text
+            self.status.configure(text=text, text_color=color)
 
     # ═══════════════════════════════════════════════════════════════
     # HOTKEY CAPTURE (interactive)
@@ -1036,9 +1115,13 @@ class VoxFlowApp(ctk.CTk):
                 sounds.play("error")
             return
         self._recording = True
+        self._rec_start = time.time()
+        self._last_timer_text = ""
         self.status.configure(text="🔴 Nagrywam... Mów teraz!", text_color=C["rec_red"])
         if self.tray:
             self.tray.set_recording(True)
+        if self.config.duck_audio_enabled:
+            self.ducker.duck()
         if self.config.play_sounds:
             sounds.play("start")
         self.overlay.show(self)
@@ -1050,6 +1133,7 @@ class VoxFlowApp(ctk.CTk):
         self._processing = True
         if self.tray:
             self.tray.set_recording(False)
+        self.ducker.restore()
         self.overlay.hide()
         if self.config.play_sounds:
             sounds.play("stop")
@@ -1154,14 +1238,56 @@ class VoxFlowApp(ctk.CTk):
     # HISTORY
     # ═══════════════════════════════════════════════════════════════
 
+    def _history_path(self) -> Path:
+        return get_config_dir() / "history.json"
+
+    def _load_history(self):
+        """Load persisted history from disk (best-effort)."""
+        try:
+            path = self._history_path()
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(data, list):
+                    self._history = [
+                        e for e in data
+                        if isinstance(e, dict) and e.get("text")
+                    ][:MAX_HISTORY_SAVED]
+        except Exception:
+            self._history = []
+
+    def _save_history(self):
+        """Persist history to disk (best-effort)."""
+        try:
+            self._history_path().write_text(
+                json.dumps(self._history[:MAX_HISTORY_SAVED], ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    @staticmethod
+    def _history_time_label(entry: dict) -> str:
+        """Display time for an entry — includes the date for older entries."""
+        ts = entry.get("ts")
+        if ts:
+            try:
+                dt = datetime.fromisoformat(ts)
+                if dt.date() == datetime.now().date():
+                    return dt.strftime("%H:%M")
+                return dt.strftime("%d.%m %H:%M")
+            except ValueError:
+                pass
+        return entry.get("time", "")
+
     def _add_history(self, text: str, lang: str, dur: float):
         self._history.insert(0, {
             "text": text, "language": lang,
             "duration": dur,
-            "time": datetime.now().strftime("%H:%M"),
+            "ts": datetime.now().isoformat(timespec="seconds"),
         })
-        if len(self._history) > 20:
-            self._history = self._history[:20]
+        if len(self._history) > MAX_HISTORY_SAVED:
+            self._history = self._history[:MAX_HISTORY_SAVED]
+        self._save_history()
         self._refresh_history()
 
     def _refresh_history(self):
@@ -1173,21 +1299,21 @@ class VoxFlowApp(ctk.CTk):
                 font=ctk.CTkFont(size=11), text_color=C["txt3"],
             ).pack(pady=4)
             return
-        for e in self._history[:10]:
+        for e in self._history[:MAX_HISTORY_SHOWN]:
             row = ctk.CTkFrame(
                 self.hist_frame, fg_color=C["bg_hover"],
                 corner_radius=8, height=32,
             )
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
-            flag = LANG_FLAGS.get(e["language"], "🌍")
+            flag = LANG_FLAGS.get(e.get("language"), "🌍")
             dur_s = f"{e.get('duration', 0):.0f}s"
             preview = e["text"][:38] + ("…" if len(e["text"]) > 38 else "")
             t = e["text"]
             # Clicking the label loads text into the transcript box
             lbl = ctk.CTkLabel(
                 row,
-                text=f"{flag} {e['time']} {dur_s} • {preview}",
+                text=f"{flag} {self._history_time_label(e)} {dur_s} • {preview}",
                 font=ctk.CTkFont(family="Segoe UI", size=10),
                 text_color=C["txt2"],
                 anchor="w",
@@ -1213,6 +1339,7 @@ class VoxFlowApp(ctk.CTk):
 
     def _clear_history(self):
         self._history = []
+        self._save_history()
         self._refresh_history()
 
     def _load_history_text(self, text: str):
@@ -1275,6 +1402,32 @@ class VoxFlowApp(ctk.CTk):
         self.config.play_sounds = self.sounds_var.get()
         self.config.save()
 
+    def _on_duck_toggle(self):
+        self.config.duck_audio_enabled = self.duck_var.get()
+        self.config.save()
+        if self.config.duck_audio_enabled:
+            self.status.configure(
+                text="🎵 Muzyka będzie ściszana podczas nagrywania",
+                text_color=C["ok"],
+            )
+        else:
+            self.status.configure(
+                text="🎵 Ściszanie muzyki wyłączone", text_color=C["txt2"]
+            )
+
+    def _on_duck_level(self, v: str):
+        try:
+            level = int(v.rstrip("%")) / 100.0
+        except ValueError:
+            return
+        self.config.duck_audio_level = level
+        self.config.save()
+        self.ducker.duck_level = level
+        label = "wyciszona" if level == 0 else f"ściszona do {v}"
+        self.status.configure(
+            text=f"🔉 Muzyka podczas dyktowania: {label}", text_color=C["ok"]
+        )
+
     def _on_autostart_toggle(self):
         enabled = self.autostart_var.get()
         set_autostart(enabled)
@@ -1315,8 +1468,7 @@ class VoxFlowApp(ctk.CTk):
 
     def _copy_text(self):
         t = self.textbox.get("1.0", "end").strip()
-        placeholder = "Twój tekst pojawi się tutaj"
-        if t and not t.startswith(placeholder):
+        if t and not t.startswith(PLACEHOLDER_PREFIX):
             try:
                 pyperclip.copy(t)
                 self.status.configure(text="📋 Skopiowano!", text_color=C["ok"])
@@ -1330,18 +1482,56 @@ class VoxFlowApp(ctk.CTk):
                 text_color=C["txt2"],
             )
 
+    def _save_text(self):
+        """Save the transcript to a text file chosen by the user."""
+        t = self.textbox.get("1.0", "end").strip()
+        if not t or t.startswith(PLACEHOLDER_PREFIX):
+            self.status.configure(
+                text="ℹ️ Brak tekstu do zapisania — najpierw nagraj dyktando",
+                text_color=C["txt2"],
+            )
+            return
+        from tkinter import filedialog
+        path = filedialog.asksaveasfilename(
+            title="Zapisz transkrypcję",
+            defaultextension=".txt",
+            initialfile=f"dyktando_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.txt",
+            filetypes=[
+                ("Plik tekstowy", "*.txt"),
+                ("Markdown", "*.md"),
+                ("Wszystkie pliki", "*.*"),
+            ],
+        )
+        if not path:
+            return
+        try:
+            Path(path).write_text(t + "\n", encoding="utf-8")
+            self.status.configure(
+                text=f"💾 Zapisano: {Path(path).name}", text_color=C["ok"]
+            )
+        except OSError:
+            self.status.configure(
+                text="⚠️ Nie udało się zapisać pliku", text_color=C["warn"]
+            )
+
+    def _on_textbox_focus(self, _event=None):
+        """Clear the placeholder when the user clicks into the textbox."""
+        t = self.textbox.get("1.0", "end").strip()
+        if t.startswith(PLACEHOLDER_PREFIX):
+            self.textbox.delete("1.0", "end")
+
     def _clear_transcript(self):
         # Keep the textbox editable — consistent with the "always editable"
         # behavior after transcription.
         self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
-        self.textbox.insert("1.0", "Twój tekst pojawi się tutaj...")
+        self.textbox.insert("1.0", PLACEHOLDER)
         self._update_text_stats()
 
     def _update_text_stats(self):
         """Update the word/character counter above the transcript box."""
         t = self.textbox.get("1.0", "end").strip()
-        if not t or t.startswith("Twój tekst pojawi się tutaj"):
+        if not t or t.startswith(PLACEHOLDER_PREFIX):
             self.stats_label.configure(text="")
             return
         self.stats_label.configure(text=f"{len(t.split())} słów • {len(t)} znaków")
@@ -1408,6 +1598,8 @@ class VoxFlowApp(ctk.CTk):
         self._alive = False
         if self._recording:
             self.recorder.stop()
+        # Restore other apps' volume if we quit mid-recording
+        self.ducker.restore()
         self.hotkey_manager.stop()
         if self.tray:
             self.tray.stop()

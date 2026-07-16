@@ -95,6 +95,8 @@ def _validate_config(data: dict) -> dict:
             validated[key] = max(50, min(5000, int(value)))
         elif key == "audio_device_index":
             validated[key] = int(value)  # -1 = default device
+        elif key == "duck_audio_level":
+            validated[key] = max(0.0, min(1.0, float(value)))
         else:
             validated[key] = value
 
@@ -149,6 +151,10 @@ class VoxFlowConfig:
     # Translation (Whisper built-in translate task → English)
     translate_enabled: bool = False
     translate_target: str = "en"  # Currently only "en" supported (Whisper limitation)
+
+    # Audio ducking — przyciszanie innych aplikacji podczas nagrywania
+    duck_audio_enabled: bool = True
+    duck_audio_level: float = 0.2  # ułamek oryginalnej głośności (0.0 = wycisz)
 
     def save(self):
         """Save configuration to JSON file."""

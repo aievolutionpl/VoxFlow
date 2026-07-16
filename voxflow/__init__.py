@@ -3,7 +3,7 @@
 Built by AI Evolution Polska
 https://github.com/aievolutionpl/VoxFlow
 """
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __app_name__ = "VoxFlow"
 __author__ = "AI Evolution Polska"
 __license__ = "MIT"

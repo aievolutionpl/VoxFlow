@@ -68,7 +68,7 @@ Wymaga [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 Opcja B — Portable (nie wymaga instalacji):
 
 ```
-CREATE_PORTABLE.bat  →  tworzy portable\VoxFlow_Portable_v1.2.0\
+CREATE_PORTABLE.bat  →  tworzy portable\VoxFlow_Portable_v1.3.0\
 ```
 
 Uruchom `START_VOXFLOW.bat` z folderu portable.
@@ -89,8 +89,12 @@ Uruchom `START_VOXFLOW.bat` z folderu portable.
 | ⌨️ Dowolny klawisz dyktowania | Configurable hotkey |
 | 📋 Auto-kopiowanie do schowka | Auto-copy to clipboard |
 | 🌊 Animacja fal audio podczas nagrywania | Audio waveform animation |
+| 🎵 Auto-ściszanie muzyki podczas dyktowania | Auto-duck music while recording |
+| ⏱️ Licznik czasu nagrywania | Recording timer |
+| 💾 Zapis transkrypcji do pliku | Save transcript to file |
 | 🔲 Ikona w zasobniku | System tray icon |
-| 📚 Historia nagrań | Recording history |
+| 📚 Historia nagrań (zapisywana na dysku) | Recording history (persisted) |
+| 🎨 6 motywów kolorów | 6 color themes |
 
 ---
 
